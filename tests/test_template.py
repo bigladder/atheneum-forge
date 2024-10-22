@@ -19,19 +19,15 @@ project(athenium) # Replace
 
 def test_read_manifest():
     toml_str = """
-[source.athenium]
-git = "git@github.com:bigladder/atheneum.git"
-git-checkout = "main"
-[source.local]
-path = "./data"
-[files]
 static = [
-  {source="athenium", from=".clang-format", to="."},
-  {source="athenium", from=".gitignore", to="."},
+  {from=".clang-format", to="."},
+  {from=".gitignore", to="."},
 ]
 template = [
-  {source="local", from="CMakeLists.txt", to="."}
+  {from="CMakeLists.txt", to="."}
 ]
     """
     data = bp.read_manifest(toml_str)
     assert len(data) > 0
+    assert "static" in data
+    assert "template" in data

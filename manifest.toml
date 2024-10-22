@@ -1,14 +1,8 @@
-[source.athenium]
-git = "git@github.com:bigladder/atheneum.git"
-git-checkout = "main"
-[source.local]
-path = "./data"
-[files]
 static = [
-  {source="athenium", from=".clang-format", to="."},
-  {source="athenium", from=".gitignore", to="."},
+  {from=".clang-format", to="."},
+  {from=".gitignore", to="."},
 ]
 template = [
-  {source="local", from="CMakeLists.txt", to="."}
+  {from="CMakeLists.txt", to="."}
 ]
 
