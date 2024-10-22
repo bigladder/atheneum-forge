@@ -1,5 +1,6 @@
 import boilerplate.core as bp
 
+
 def test_template():
     config = {
         "project_name": "Athenium",
