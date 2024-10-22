@@ -37,3 +37,24 @@ template = [
     for s in data["template"]:
         assert "from" in s
         assert "to" in s
+
+
+def test_generate_task():
+    toml_str = """
+static = [
+  {from=".clang-format", to="."},
+  {from=".gitignore", to="."},
+]
+template = [
+  {from="CMakeLists.txt", to="."}
+]
+    """
+    manifest = bp.read_manifest(toml_str)
+    repo_dir = "./data"
+    target = "../new_repo"
+    config = {
+        "project_name": "Athenium",
+    }
+    results = bp.generate(repo_dir, target, manifest, config, dry_run = True)
+    assert len(results) == 3
+    
