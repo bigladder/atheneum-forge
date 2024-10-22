@@ -5,4 +5,7 @@ Using this project, new source code repositories can be set up **and** updated f
 
 ## Usage
 
+## Reference
 
+Poetry and Helix
+https://blog.jorisl.nl/helix_python_lsp/
