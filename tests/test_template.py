@@ -55,6 +55,5 @@ template = [
     config = {
         "project_name": "Athenium",
     }
-    results = bp.generate(repo_dir, target, manifest, config, dry_run = True)
+    results = bp.generate(repo_dir, target, manifest, config, dry_run=True)
     assert len(results) == 3
-    

@@ -28,7 +28,14 @@ def read_manifest(toml_str: str) -> dict:
     return tomllib.loads(toml_str)
 
 
-def process_files(src_dir: Path, tgt_dir: Path, file_paths: [], config: None|dict, dry_run: bool, result: []):
+def process_files(
+    src_dir: Path,
+    tgt_dir: Path,
+    file_paths: [],
+    config: None | dict,
+    dry_run: bool,
+    result: [],
+):
     """
     Process files from src directory to target directory.
     - src_dir: the source directory
@@ -44,17 +51,20 @@ def process_files(src_dir: Path, tgt_dir: Path, file_paths: [], config: None|dic
         prefix = None
         if not dry_run:
             if config is None:
-                if not to_path.exists() or from_path.stat().st_mtime > to_path.stat().st_mtime:
+                if (
+                    not to_path.exists()
+                    or from_path.stat().st_mtime > to_path.stat().st_mtime
+                ):
                     shutil.copyfile(from_path, to_path)
                     prefix = "COPY              : "
                 else:
                     prefix = "UP-TO-DATE(copy)  : "
             else:
                 template = None
-                with open(from_path, 'r') as fid:
+                with open(from_path, "r") as fid:
                     template = fid.read()
                 out = render(template, config)
-                with open(to_path, 'w') as fid:
+                with open(to_path, "w") as fid:
                     fid.write(out)
                 prefix = "RENDER            : "
         elif config is None:
@@ -64,7 +74,9 @@ def process_files(src_dir: Path, tgt_dir: Path, file_paths: [], config: None|dic
         result.append(f"{prefix}{f['from']} => {f['to']}")
 
 
-def generate(source: str, target: str, manifest: dict, config: dict, dry_run: bool) -> []:
+def generate(
+    source: str, target: str, manifest: dict, config: dict, dry_run: bool
+) -> []:
     """
     Generate (or regenerate) the manifest files in repo_dir at target.
     - source: path to repo directory
@@ -81,6 +93,20 @@ def generate(source: str, target: str, manifest: dict, config: dict, dry_run: bo
         # check if target dir exists, creating if necessary (mkdir -p)
         pass
     result = []
-    process_files(src_dir, tgt_dir, manifest["static"], config = None, dry_run = dry_run, result = result)
-    process_files(src_dir, tgt_dir, manifest["template"], config = config, dry_run = dry_run, result = result)
+    process_files(
+        src_dir,
+        tgt_dir,
+        manifest["static"],
+        config=None,
+        dry_run=dry_run,
+        result=result,
+    )
+    process_files(
+        src_dir,
+        tgt_dir,
+        manifest["template"],
+        config=config,
+        dry_run=dry_run,
+        result=result,
+    )
     return result
