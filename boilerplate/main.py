@@ -1,6 +1,7 @@
 """
 Copyright (C) 2024 Big Ladder Software, LLC. See LICENSE.txt for license information.
 """
+
 import typer
 
 from .core import generate
