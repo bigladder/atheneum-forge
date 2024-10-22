@@ -1,8 +1,0 @@
-static = [
-  {from=".clang-format", to="."},
-  {from=".gitignore", to="."},
-]
-template = [
-  {from="CMakeLists.txt", to="."}
-]
-

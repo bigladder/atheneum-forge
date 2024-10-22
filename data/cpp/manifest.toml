@@ -1,0 +1,16 @@
+static = [
+  {from=".clang-format", to="."},
+  {from=".gitignore", to="."},
+]
+template = [
+  {from="CMakeLists.txt", to="."},
+  {from="LICENSE.txt", to="."},
+]
+[parameters]
+project_name = {type="str"}
+start_year = {type="int:year", default="parameter:year"}
+year = {type="int:year", default="current_year()"}
+version_major = {type="int:>=0", default=0}
+version_minor = {type="int:>=0", default=1}
+version_patch = {type="int:>=0", default=0}
+use_app = {type="bool", default=false}

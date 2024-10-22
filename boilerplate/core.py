@@ -1,6 +1,9 @@
 import tomllib
+import tomli_w
 from pathlib import Path
 import shutil
+from datetime import datetime
+import re
 
 from jinja2 import Template
 
@@ -110,3 +113,26 @@ def generate(
         result=result,
     )
     return result
+
+
+def create_config_toml(manifest: dict) -> str:
+    """
+    Create config TOML data from the given manifest.
+    """
+    params = manifest["parameters"] if "parameters" in manifest else {}
+    required = []
+    defaults = []
+    for p in sorted(params.keys()):
+        if "default" in params[p]:
+            d = params[p]["default"]
+            if isinstance(d, str) and d.startswith("parameter:"):
+                d = params[re.sub("parameter:", "", d)]["default"]
+            if isinstance(d, str) and d.endswith("()"):
+                if d == "current_year()":
+                    d = datetime.now().year
+            value_str = tomli_w.dumps({p: d}).strip()
+            defaults.append(f"# {value_str}")
+        else:
+            required.append(f"{p} = # <-- {params[p]['type']}")
+    all = required + defaults
+    return "\n".join(all)
