@@ -1,7 +1,9 @@
+import tomllib
+
 from jinja2 import Template
 
 
-def render(template, config):
+def render(template: str, config: dict) -> str:
     """
     Render a template using the given data
     - template: string, Jinja2 template to render
@@ -10,3 +12,7 @@ def render(template, config):
     """
     t = Template(template)
     return t.render(config)
+
+
+def read_manifest(toml_str: str) -> dict:
+    return tomllib.loads(toml_str)
