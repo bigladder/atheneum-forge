@@ -31,3 +31,9 @@ template = [
     assert len(data) > 0
     assert "static" in data
     assert "template" in data
+    for s in data["static"]:
+        assert "from" in s
+        assert "to" in s
+    for s in data["template"]:
+        assert "from" in s
+        assert "to" in s

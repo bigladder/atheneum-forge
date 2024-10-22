@@ -18,6 +18,9 @@ def read_manifest(toml_str: str) -> dict:
     """
     Read a TOML manifest from a string.
     - toml_str: the TOML string
-    RESULT: dict(str, any)
+    RESULT: {
+        "static":[{"from": "path", "to": "path"},...],
+        "template":[{"from": "path", "to": "path"},...],
+    }
     """
     return tomllib.loads(toml_str)
