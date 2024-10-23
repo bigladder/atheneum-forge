@@ -57,6 +57,10 @@ def process_files(
         else:
             to_path.parent.mkdir(parents=True, exist_ok=True)
         prefix = None
+        if "onetime" in f and f["onetime"] and to_path.exists():
+            prefix = "SKIPPED (one-time): "
+            result.append(f"{prefix}{f['from']} => {f['to']}")
+            continue
         if not dry_run:
             if config is None:
                 if (

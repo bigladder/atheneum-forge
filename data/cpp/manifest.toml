@@ -5,6 +5,7 @@ static = [
 template = [
   {from="CMakeLists.txt", to="."},
   {from="LICENSE.txt", to="."},
+  {from="README.md", to=".", onetime=true},
 ]
 [parameters]
 project_name = {type="str"}

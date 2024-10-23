@@ -1,9 +1,6 @@
-# Atheneum Boilerplate
+# {{ project_name }}
 
-This project serves as a template for consistent, cross-platform, open-source C++ library development.
-
-One goal is to make it as simple as possible to go from cloning to a tested build with as few steps as possible. The
-general process should be as simple as:
+The build process is:
 
 ```
 cmake .
@@ -14,6 +11,9 @@ ctest -C Release
 ## Directory structure
 
 - root
+{%- if use_app %}
+    - app
+{%- endif %}
     - cmake
     - docs
     - examples

@@ -25,6 +25,11 @@ def gen(config_path: str, project_type: str):
     """
     typer.echo(f"Generating files for {project_type} at {config_path}")
     p_config = Path(config_path).resolve()
+    if not p_config.exists():
+        print(f"ERROR: config file doesn't exist: {p_config}")
+        sys.exit(3)
+    if not p_config.is_file():
+        print(f"ERROR: config is not a file: {p_config}")
     tgt_dir = p_config.parent
     src_dir = DATA_DIR / project_type
     if not src_dir.exists() or not src_dir.is_dir():
