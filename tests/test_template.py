@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import boilerplate.core as bp
 
 
@@ -90,3 +92,37 @@ project_name = # <-- str
 # year = 2024
     """.strip()
     assert expected == actual
+
+
+def test_merge_config_with_defaults():
+    manifest_toml = """
+[parameters]
+project_name = {type="str"}
+start_year = {type="int:year", default="parameter:year"}
+year = {type="int:year", default="current_year()"}
+version_major = {type="int:>=0", default=0}
+version_minor = {type="int:>=0", default=1}
+version_patch = {type="int:>=0", default=0}
+use_app = {type="bool", default=false}
+    """
+    manifest = bp.read_manifest(manifest_toml)
+    config_toml = """
+project_name = "bob"
+start_year = 2022
+# use_app = false
+# version_major = 0
+# version_minor = 1
+# version_patch = 0
+# year = 2024
+    """
+    actual = bp.read_config(config_toml, manifest["parameters"])
+    expected = {
+        "project_name": "bob",
+        "start_year": 2022,
+        "use_app": False,
+        "version_major": 0,
+        "version_minor": 1,
+        "version_patch": 0,
+        "year": datetime.now().year,
+    }
+    assert actual == expected

@@ -1,4 +1,4 @@
-Copyright (c) {% if start_year is not None and start_year != year %}{{ start_year }} - {% endif %}{{ year }} Big Ladder Software, LLC
+Copyright (c) {% if start_year is defined and start_year != year %}{{ start_year }} - {% endif %}{{ year }} Big Ladder Software, LLC
 
 Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 

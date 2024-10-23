@@ -49,8 +49,13 @@ def process_files(
     - result: [str], keeps a list of which actions were taken
     """
     for f in file_paths:
-        from_path = src_dir / f["from"]
-        to_path = tgt_dir / f["to"]
+        from_path = (src_dir / f["from"]).resolve()
+        to_path = (tgt_dir / f["to"]).resolve()
+        if to_path.is_dir():
+            to_path.mkdir(parents=True, exist_ok=True)
+            to_path = to_path / from_path.name
+        else:
+            to_path.parent.mkdir(parents=True, exist_ok=True)
         prefix = None
         if not dry_run:
             if config is None:
@@ -136,3 +141,18 @@ def create_config_toml(manifest: dict) -> str:
             required.append(f"{p} = # <-- {params[p]['type']}")
     all = required + defaults
     return "\n".join(all)
+
+
+def read_config(config_toml: str, parameters: dict) -> dict:
+    """
+    Read the config toml and mix in defaults from manifest's parameters section.
+    """
+    config = tomllib.loads(config_toml)
+    for p in parameters.keys():
+        if p not in config and "default" in parameters[p]:
+            raw_value = parameters[p]["default"]
+            if isinstance(raw_value, str) and raw_value.endswith("()"):
+                if raw_value == "current_year()":
+                    raw_value = datetime.now().year
+            config[p] = raw_value
+    return config
