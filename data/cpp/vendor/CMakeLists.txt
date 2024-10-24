@@ -22,3 +22,11 @@ if (${PROJECT_NAME}_BUILD_TESTING AND NOT TARGET gtest)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/googletest)
 
 endif ()
+
+{%- for d in deps %}
+{%- if d.add_to_cmake %}
+if (NOT TARGET {{ d.name }})
+    add_subdirectory({{ d.name }})
+endif()
+{%- endif %}
+{%- endfor %}

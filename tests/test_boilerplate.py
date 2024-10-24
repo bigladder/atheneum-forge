@@ -92,9 +92,11 @@ project_name = # <-- str
 # version_minor = 1
 # version_patch = 0
 # year = 2024
-# [dep.dep_name]
+# [[deps]]
+# name = "" # <- name of the dependency; vendor/<name>
 # git_url = "" # <- add the url used to checkout this repository
-# git_checkout = "" <- add the branch, sha, or tag to check out
+# git_checkout = "" # <- add the branch, sha, or tag to check out
+# add_to_cmake = true # <- if true, add to CMakeLists.txt files
     """.strip()
     assert expected == actual
 
@@ -276,20 +278,23 @@ def test_setup_vendor():
     assert actual == expected
 
     config = {
-        "deps": {
-            "CLI11": {
+        "deps": [
+            {
+                "name": "CLI11",
                 "git_url": "https://github.com/CLIUtils/CLI11.git",
                 "git_checkout": "master",
             },
-            "courier": {
+            {
+                "name": "courier",
                 "git_url": "https://github.com/bigladder/courier.git",
                 "git_checkout": "main",
             },
-            "toml11": {
+            {
+                "name": "toml11",
                 "git_url": "https://github.com/ToruNiina/toml11.git",
                 "git_checkout": "1234567",
             },
-        },
+        ],
     }
     actual = bp.setup_vendor(config, tgt_dir, dry_run=True)
     expected = [

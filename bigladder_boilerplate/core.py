@@ -250,11 +250,28 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
         else:
             required.append(f"{p} = # <-- {params[p]['type']}")
     all = required + defaults
-    postfix = """
-# [dep.dep_name]
+    deps = sorted(manifest.get("deps", []), key=lambda d: d["name"])
+    dep_strings = []
+    for dep in deps:
+        dep_strings.append("[[deps]]")
+        dep_strings.append("name = \"{dep['name']}\"")
+        dep_strings.append("git_url = \"{dep['git_url']}\"")
+        dep_strings.append("git_checkout = \"{dep['git_checkout']}\"")
+        if "add_to_cmake" in dep:
+            if dep["add_to_cmake"]:
+                dep_strings.append("add_to_cmake = true")
+            else:
+                dep_strings.append("add_to_cmake = false")
+        else:
+            dep_strings.append("add_to_cmake = true")
+    dep_strings.append("""
+# [[deps]]
+# name = "" # <- name of the dependency; vendor/<name>
 # git_url = "" # <- add the url used to checkout this repository
-# git_checkout = "" <- add the branch, sha, or tag to check out
-    """.strip()
+# git_checkout = "" # <- add the branch, sha, or tag to check out
+# add_to_cmake = true # <- if true, add to CMakeLists.txt files
+    """.strip())
+    postfix = '\n'.join(dep_strings)
     return "\n".join(all) + "\n" + postfix
 
 
@@ -327,16 +344,16 @@ def list_all_files(dir_path: Path) -> set:
 def setup_vendor(config: dict, tgt_dir: Path, dry_run: bool = False) -> list:
     """
     Return the list of commands necessary to set up vendor directory.
-    - config: dict, must contain the key "deps" which is a dict:
-        { "dep-name": {"git_url": "", "git_checkout": "branch/sha/tag name"}}
+    - config: dict, must contain the key "deps" which is a list:
+        [{"name": "dep_name", "git_url": "", "git_checkout": "branch/sha/tag name"}, ...]
     - tgt_dir: Path to directory where setup should occur. (root path)
     - dry_run: bool, if True doesn't touch the file system.
     RETURN: list of commands where a command is {"dir": Path, "cmds": list(str)}
     """
     cmds = []
-    for dep_name in sorted(config.get("deps", {}).keys()):
+    for dep in sorted(config.get("deps", []), key=lambda d: d["name"]):
+        dep_name = dep["name"]
         tgt_dep = tgt_dir / "vendor" / dep_name
-        dep = config["deps"][dep_name]
         if dry_run or not tgt_dep.exists():
             cmd = f"git submodule add {dep['git_url']} vendor/{dep_name}"
             cmds.append(cmd)
