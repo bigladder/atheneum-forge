@@ -210,6 +210,8 @@ def derive_default_parameter(defaults: dict, key: str) -> any:
     - key: str, the key to fetch
     RESULT: any, the processed default
     """
+    if key not in defaults:
+        return None
     d = defaults[key].get("default", None)
     if isinstance(d, str):
         if d.startswith("parameter:"):

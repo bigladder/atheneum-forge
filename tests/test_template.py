@@ -205,3 +205,17 @@ def test_merge_defaults_into_config():
         "use_app": False,
     }
     assert actual == expected
+
+
+def test_derive_default_param():
+    actual = bp.derive_default_parameter({}, "foo")    
+    expected = None
+    assert actual == expected
+
+    actual = bp.derive_default_parameter({"foo": {}}, "foo")
+    expected = None
+    assert actual == expected
+
+    actual = bp.derive_default_parameter({"foo": {"default": "bar"}}, "foo")
+    expected = "bar"
+    assert actual == expected
