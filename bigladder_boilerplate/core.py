@@ -2,11 +2,14 @@ from datetime import datetime
 from pathlib import Path, PurePath
 import re
 import shutil
+import subprocess
 import sys
 import tomli_w
 import tomllib
 
 from jinja2 import Template
+
+RECOGNIZED_CONFIG_KEYS = {"deps"}
 
 
 def render(template: str, config: dict) -> str:
@@ -81,6 +84,8 @@ def process_single_file(
                 not to_path.exists()
                 or from_path.stat().st_mtime > to_path.stat().st_mtime
             ):
+                if not to_path.parent.exists():
+                    to_path.parent.mkdir(parents=True)
                 shutil.copyfile(from_path, to_path)
                 prefix = "COPY              : "
             else:
@@ -254,16 +259,13 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
     dep_strings = []
     for dep in deps:
         dep_strings.append("[[deps]]")
-        dep_strings.append("name = \"{dep['name']}\"")
-        dep_strings.append("git_url = \"{dep['git_url']}\"")
-        dep_strings.append("git_checkout = \"{dep['git_checkout']}\"")
-        if "add_to_cmake" in dep:
-            if dep["add_to_cmake"]:
-                dep_strings.append("add_to_cmake = true")
-            else:
-                dep_strings.append("add_to_cmake = false")
-        else:
+        dep_strings.append(f"name = \"{dep['name']}\"")
+        dep_strings.append(f"git_url = \"{dep['git_url']}\"")
+        dep_strings.append(f"git_checkout = \"{dep['git_checkout']}\"")
+        if "add_to_cmake" in dep and dep["add_to_cmake"]:
             dep_strings.append("add_to_cmake = true")
+        else:
+            dep_strings.append("add_to_cmake = false")
     dep_strings.append(
         """
 # [[deps]]
@@ -285,7 +287,8 @@ def merge_defaults_into_config(
     for p in config.keys():
         data_type = None
         if p not in defaults:
-            print("[WARNING] unrecognized key '{p}' in config")
+            if p not in RECOGNIZED_CONFIG_KEYS:
+                print(f"[WARNING] unrecognized key '{p}' in config")
         else:
             date_type = defaults[p].get("type", None)
         v = config[p]
@@ -386,3 +389,20 @@ def init_git_repo(tgt_dir: Path | str) -> list:
             ],
         }
     ]
+
+
+def run_commands(cmds: list) -> bool:
+    """
+    Run a list of commands.
+    A command is documented as for setup_vendor.
+    RETURN: True if all commands ran OK. Else false.
+    """
+    for c in cmds:
+        for cmd in c["cmds"]:
+            if not c["dir"].exists():
+                c["dir"].mkdir(parents=True)
+            result = subprocess.run(cmd, cwd=c["dir"], shell=True)
+            if result.returncode != 0:
+                print(f"[ERROR] error running '{cmd}'")
+                return False
+    return True

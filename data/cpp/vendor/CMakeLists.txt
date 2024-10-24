@@ -25,6 +25,7 @@ endif ()
 
 {%- for d in deps %}
 {%- if d.add_to_cmake %}
+
 if (NOT TARGET {{ d.name }})
     add_subdirectory({{ d.name }})
 endif()
