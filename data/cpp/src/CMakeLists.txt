@@ -1,12 +1,14 @@
 # Main library
-file(GLOB_RECURSE sources "${PROJECT_SOURCE_DIR}/src/[a-zA-Z]*.cpp")
-file(GLOB_RECURSE public_headers "${PROJECT_SOURCE_DIR}/include/${PROJECT_NAME}/[a-zA-Z]*.h")
-file(GLOB_RECURSE private_headers "${PROJECT_SOURCE_DIR}/src/[a-zA-Z]*.h")
-
 set(library_sources
-        ${sources}
-        ${public_headers}
-        ${private_headers}
+    {%- for src in files_src %}
+    {{ src }}
+    {%- endfor %}
+    {%- for h in headers_public %}
+    {{ h }}
+    {%- endfor %}
+    {%- for h in headers_private %}
+    {{ h }}
+    {%- endfor %}
 )
 
 if (${PROJECT_NAME}_STATIC_LIB)
@@ -19,12 +21,12 @@ endif ()
 
 target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/include" "${PROJECT_BINARY_DIR}/include" PRIVATE "${PROJECT_SOURCE_DIR}/src")
 
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_{{ cpp_std }})
 
 target_link_libraries(${PROJECT_NAME} PRIVATE fmt)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE ${PROJECT_NAME}_build_options)
-target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_17)
+target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_{{ cpp_std }})
 
 include(GenerateExportHeader)
 generate_export_header(${PROJECT_NAME})

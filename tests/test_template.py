@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-import boilerplate.core as bp
+import bigladder_boilerplate.core as bp
 
 
 def test_template():
@@ -219,3 +219,33 @@ def test_derive_default_param():
     actual = bp.derive_default_parameter({"foo": {"default": "bar"}}, "foo")
     expected = "bar"
     assert actual == expected
+
+
+def test_derive_default_parameter_with_src_tree():
+    all_files = {
+        "README.md",
+        "src/a.cpp",
+        "src/b.cpp",
+        "src/c.cpp",
+        "src/hidden.h",
+        "app/abc.cpp",
+        "include/abc/abc.h",
+    }
+    defaults = {
+        "files_src": {
+            "type":"str:glob",
+            "default":"src/[a-zA-Z]*.cpp",
+        },
+        "headers_public": {
+            "type": "str:glob",
+            "default": "include/*/*.h",
+        },
+    }
+    actual = bp.derive_default_parameter(defaults, "files_src", all_files)
+    expected = {"src/a.cpp", "src/b.cpp", "src/c.cpp"}
+    assert actual == expected
+
+    actual = bp.derive_default_parameter(defaults, "headers_public", all_files)
+    expected = {"include/abc/abc.h"}
+    assert actual == expected
+

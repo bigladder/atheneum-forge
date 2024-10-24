@@ -8,7 +8,7 @@ import tomllib
 
 import typer
 
-from .core import generate, create_config_toml, read_config
+from .core import generate, create_config_toml, read_config, list_all_files
 
 
 app = typer.Typer()
@@ -42,7 +42,8 @@ def gen(config_path: str, project_type: str):
         manifest = tomllib.load(fid)
     with open(p_config, "r") as fid:
         config_toml = fid.read()
-    config, is_ok = read_config(config_toml, manifest["parameters"])
+    all_files = list_all_files(tgt_dir)
+    config, is_ok = read_config(config_toml, manifest["parameters"], all_files)
     if not is_ok:
         print("[ERROR] error while processing config file")
         sys.exit(1)

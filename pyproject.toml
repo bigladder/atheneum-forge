@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "boilerplate"
+name = "bigladder-boilerplate"
 version = "0.1.0"
 description = "Project boilerplate and build system scaffolding generation and maintenance."
 authors = ["Big Ladder Software <info@bigladdersoftware.com>"]
@@ -12,7 +12,7 @@ typer = "^0.12.5"
 tomli-w = "^1.1.0"
 
 [tool.poetry.scripts]
-blboiler = "boilerplate.main:app"
+blbp = "boilerplate.main:app"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.7.0"
