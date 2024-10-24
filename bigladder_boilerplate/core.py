@@ -157,6 +157,8 @@ def process_files(
             from_path = from_path_with_glob["path"]
             glob = from_path_with_glob["glob"]
             for fpath in from_path.glob(glob):
+                if fpath.is_dir():
+                    continue
                 is_ok = process_single_file(
                     fpath, to_path / fpath.name, config, onetime, dry_run, result
                 )
