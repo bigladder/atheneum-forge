@@ -205,7 +205,9 @@ def generate(
     return (result, True)
 
 
-def derive_default_parameter(defaults: dict, key: str, all_files: set|None = None) -> any:
+def derive_default_parameter(
+    defaults: dict, key: str, all_files: set | None = None
+) -> any:
     """
     Derive default parameters, running any computations.
     - defaults: dict(str, {"default": any}), the dictionary of default parameters
@@ -233,7 +235,7 @@ def derive_default_parameter(defaults: dict, key: str, all_files: set|None = Non
     return d
 
 
-def create_config_toml(manifest: dict, all_files: set|None = None) -> str:
+def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
     """
     Create config TOML data from the given manifest.
     """
@@ -251,7 +253,9 @@ def create_config_toml(manifest: dict, all_files: set|None = None) -> str:
     return "\n".join(all)
 
 
-def merge_defaults_into_config(config: dict, defaults: dict, all_files: set|None = None) -> (dict, bool):
+def merge_defaults_into_config(
+    config: dict, defaults: dict, all_files: set | None = None
+) -> (dict, bool):
     """ """
     result = {}
     for p in config.keys():
@@ -294,7 +298,9 @@ def merge_defaults_into_config(config: dict, defaults: dict, all_files: set|None
     return result, True
 
 
-def read_config(config_toml: str, parameters: dict, all_files: set|None = None) -> (dict, bool):
+def read_config(
+    config_toml: str, parameters: dict, all_files: set | None = None
+) -> (dict, bool):
     """
     Read the config toml and mix in defaults from manifest's parameters section.
     RETURN: config dict and flag: True if all processes executed OK, else False.
@@ -308,6 +314,6 @@ def list_all_files(dir_path: Path) -> set:
     List all files relative to a dir_path using relative path strings.
     """
     result = set()
-    for item in dir_path.glob('**/*'):
+    for item in dir_path.glob("**/*"):
         result.add(str(item.relative_to(dir_path)))
     return result

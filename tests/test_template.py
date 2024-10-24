@@ -233,8 +233,8 @@ def test_derive_default_parameter_with_src_tree():
     }
     defaults = {
         "files_src": {
-            "type":"str:glob",
-            "default":"src/[a-zA-Z]*.cpp",
+            "type": "str:glob",
+            "default": "src/[a-zA-Z]*.cpp",
         },
         "headers_public": {
             "type": "str:glob",
@@ -248,4 +248,3 @@ def test_derive_default_parameter_with_src_tree():
     actual = bp.derive_default_parameter(defaults, "headers_public", all_files)
     expected = {"include/abc/abc.h"}
     assert actual == expected
-
