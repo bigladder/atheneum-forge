@@ -53,7 +53,7 @@ def build_path(starting_dir: Path, path_str: str) -> dict:
 def process_single_file(
     from_path: Path,
     to_path: Path,
-    config: dict|None,
+    config: dict | None,
     onetime: bool,
     dry_run: bool,
     result: [],
@@ -115,7 +115,9 @@ def process_files(
         onetime = f.get("onetime", False)
         to_path_with_glob = build_path(tgt_dir, f["to"])
         if to_path_with_glob["glob"] is not None:
-            print("[ERROR] glob not allowed in 'to' path. Path must be directory or file.")
+            print(
+                "[ERROR] glob not allowed in 'to' path. Path must be directory or file."
+            )
             print(f"... got {to_path_with_glob['path']}")
             sys.exit(1)
         to_path = to_path_with_glob["path"]
@@ -127,7 +129,9 @@ def process_files(
         from_path_with_glob = build_path(src_dir, f["from"])
         if from_path_with_glob["glob"] is None:
             from_path = from_path_with_glob["path"]
-            is_ok = process_single_file(from_path, to_path, config, onetime, dry_run, result)
+            is_ok = process_single_file(
+                from_path, to_path, config, onetime, dry_run, result
+            )
         else:
             if not to_path.is_dir():
                 print("[ERROR] to_path must be a dir when globs are in from path")
@@ -135,7 +139,9 @@ def process_files(
             from_path = from_path_with_glob["path"]
             glob = from_path_with_glob["glob"]
             for fpath in from_path.glob(glob):
-                is_ok = process_single_file(fpath, to_path / fpath.name, config, onetime, dry_run, result)
+                is_ok = process_single_file(
+                    fpath, to_path / fpath.name, config, onetime, dry_run, result
+                )
                 if not is_ok:
                     return False
     return is_ok

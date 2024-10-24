@@ -131,33 +131,30 @@ start_year = 2022
 
 
 def test_build_path():
-    starting_dir = Path('/projects/example/data')
+    starting_dir = Path("/projects/example/data")
     path_str = "cmake/superstuff.cmake"
     actual = bp.build_path(starting_dir, path_str)
     expected = {
-        "path": Path('/projects/example/data/cmake/superstuff.cmake'),
+        "path": Path("/projects/example/data/cmake/superstuff.cmake"),
         "glob": None,
     }
     assert actual == expected
 
 
 def test_build_path_2():
-    starting_dir = Path('/projects/example/data')
+    starting_dir = Path("/projects/example/data")
     path_str = "cmake/*.cmake"
     actual = bp.build_path(starting_dir, path_str)
     expected = {
-        "path": Path('/projects/example/data/cmake/'),
+        "path": Path("/projects/example/data/cmake/"),
         "glob": "*.cmake",
     }
     assert actual == expected
 
 
 def test_build_path_3():
-    starting_dir = Path('/projects/example/data')
+    starting_dir = Path("/projects/example/data")
     path_str = "**/*.cpp"
     actual = bp.build_path(starting_dir, path_str)
-    expected = {
-        "path": Path('/projects/example/data'),
-        "glob": "**/*.cpp"
-    }
+    expected = {"path": Path("/projects/example/data"), "glob": "**/*.cpp"}
     assert actual == expected
