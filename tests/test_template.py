@@ -1,4 +1,5 @@
 from datetime import datetime
+from pathlib import Path
 
 import boilerplate.core as bp
 
@@ -57,7 +58,8 @@ template = [
     config = {
         "project_name": "Athenium",
     }
-    results = bp.generate(repo_dir, target, manifest, config, dry_run=True)
+    results, is_ok = bp.generate(repo_dir, target, manifest, config, dry_run=True)
+    assert is_ok == True
     assert len(results) == 3
 
 
@@ -124,5 +126,38 @@ start_year = 2022
         "version_minor": 1,
         "version_patch": 0,
         "year": datetime.now().year,
+    }
+    assert actual == expected
+
+
+def test_build_path():
+    starting_dir = Path('/projects/example/data')
+    path_str = "cmake/superstuff.cmake"
+    actual = bp.build_path(starting_dir, path_str)
+    expected = {
+        "path": Path('/projects/example/data/cmake/superstuff.cmake'),
+        "glob": None,
+    }
+    assert actual == expected
+
+
+def test_build_path_2():
+    starting_dir = Path('/projects/example/data')
+    path_str = "cmake/*.cmake"
+    actual = bp.build_path(starting_dir, path_str)
+    expected = {
+        "path": Path('/projects/example/data/cmake/'),
+        "glob": "*.cmake",
+    }
+    assert actual == expected
+
+
+def test_build_path_3():
+    starting_dir = Path('/projects/example/data')
+    path_str = "**/*.cpp"
+    actual = bp.build_path(starting_dir, path_str)
+    expected = {
+        "path": Path('/projects/example/data'),
+        "glob": "**/*.cpp"
     }
     assert actual == expected

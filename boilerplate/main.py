@@ -43,7 +43,9 @@ def gen(config_path: str, project_type: str):
     with open(p_config, "r") as fid:
         config_toml = fid.read()
     config = read_config(config_toml, manifest["parameters"])
-    result = generate(src_dir, tgt_dir, manifest, config, dry_run=False)
+    result, is_ok = generate(src_dir, tgt_dir, manifest, config, dry_run=False)
+    if not is_ok:
+        print("[ERROR]  error while processing... not all tasks completed successfully")
     for r in result:
         print(f"- {r}")
 
