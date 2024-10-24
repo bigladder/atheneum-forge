@@ -254,7 +254,15 @@ def test_derive_default_parameter_with_src_tree():
 
 
 def test_init_git_repo():
-    pass
+    dir = "/Users/frodo-baggins/projects/test-project/"
+    actual = bp.init_git_repo(dir)
+    expected = [{
+        "dir": PurePath(dir),
+        "cmds": [
+            "git init --initial-branch=main",
+        ],
+    }]
+    assert expected == actual
 
 
 def test_setup_vendor():
