@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 3.10) # required for gtest_discover_tests
 project({{ project_name | lower }}
     VERSION {{ version_major }}.{{ version_minor }}.{{ version_patch }})
 
+# NOTE: Required for some dependencies to build (e.g., toml11).
+set(CMAKE_CXX_STANDARD {{ cpp_std }})
+
 # Set a default build type if none was specified
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to 'Release' as none was specified.")

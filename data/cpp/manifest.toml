@@ -2,6 +2,8 @@ static = [
   {from=".clang-format", to="."},
   {from=".gitignore", to="."},
   {from="cmake/*", to="cmake/."},
+  {from=".github/*", to=".github/."},
+  {from=".github/workflows/*", to=".github/workflows/."},
 ]
 template = [
   {from="CMakeLists.txt", to="."},

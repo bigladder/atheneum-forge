@@ -1,14 +1,15 @@
 # Main library
 set(library_sources
     {%- for src in files_src %}
-    {{ src.name }}
+    ${PROJECT_SOURCE_DIR}/src/{{ src.name }}
     {%- endfor %}
     {%- for h in headers_public %}
-    {{ h.code_path }}
+    ${PROJECT_SOURCE_DIR}/include/{{ h.code_path }}
     {%- endfor %}
     {%- for h in headers_private %}
-    {{ h.name }}
+    ${PROJECT_SOURCE_DIR}/src/{{ h.name }}
     {%- endfor %}
+    ${PROJECT_BINARY_DIR}/include/${PROJECT_NAME}/version.h
 )
 
 if (${PROJECT_NAME}_STATIC_LIB)
@@ -19,7 +20,11 @@ else ()
     add_library(${PROJECT_NAME} SHARED ${library_sources})
 endif ()
 
-target_include_directories(${PROJECT_NAME} PUBLIC "${PROJECT_SOURCE_DIR}/include" "${PROJECT_BINARY_DIR}/include" PRIVATE "${PROJECT_SOURCE_DIR}/src")
+target_include_directories(${PROJECT_NAME}
+    PUBLIC "${PROJECT_SOURCE_DIR}/include"
+    PUBLIC "${PROJECT_BINARY_DIR}/include"
+    PRIVATE "${PROJECT_SOURCE_DIR}/src"
+)
 
 target_compile_features(${PROJECT_NAME} PRIVATE cxx_std_{{ cpp_std }})
 
