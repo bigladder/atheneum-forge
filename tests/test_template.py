@@ -208,7 +208,7 @@ def test_merge_defaults_into_config():
 
 
 def test_derive_default_param():
-    actual = bp.derive_default_parameter({}, "foo")    
+    actual = bp.derive_default_parameter({}, "foo")
     expected = None
     assert actual == expected
 
