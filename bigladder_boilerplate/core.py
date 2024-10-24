@@ -235,11 +235,13 @@ def derive_default_parameter(
         matched = []
         for file_path in all_files:
             if PurePath(file_path).match(d):
-                matched.append({
-                    "path": file_path,
-                    "name": str(PurePath(file_path).name),
-                    "code_path": re.sub("^include/", "", file_path),
-            })
+                matched.append(
+                    {
+                        "path": file_path,
+                        "name": str(PurePath(file_path).name),
+                        "code_path": re.sub("^include/", "", file_path),
+                    }
+                )
         d = sorted(matched, key=lambda m: m["path"])
     return d
 
@@ -346,7 +348,7 @@ def list_all_files(dir_path: Path) -> set:
     """
     result = set()
     for item in dir_path.glob("**/*"):
-        if item.is_relative_to(dir_path / 'vendor'):
+        if item.is_relative_to(dir_path / "vendor"):
             continue
         result.add(str(item.relative_to(dir_path)))
     return result
