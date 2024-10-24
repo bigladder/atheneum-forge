@@ -264,14 +264,16 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
                 dep_strings.append("add_to_cmake = false")
         else:
             dep_strings.append("add_to_cmake = true")
-    dep_strings.append("""
+    dep_strings.append(
+        """
 # [[deps]]
 # name = "" # <- name of the dependency; vendor/<name>
 # git_url = "" # <- add the url used to checkout this repository
 # git_checkout = "" # <- add the branch, sha, or tag to check out
 # add_to_cmake = true # <- if true, add to CMakeLists.txt files
-    """.strip())
-    postfix = '\n'.join(dep_strings)
+    """.strip()
+    )
+    postfix = "\n".join(dep_strings)
     return "\n".join(all) + "\n" + postfix
 
 
