@@ -1,13 +1,15 @@
 static = [
   {from=".clang-format", to="."},
   {from=".gitignore", to="."},
-  {from="cmake/*", to="cmake/."}
+  {from="cmake/*", to="cmake/."},
+  {from="test/CMakeLists.txt", to="test/."},
 ]
 template = [
   {from="CMakeLists.txt", to="."},
   {from="LICENSE.txt", to="."},
   {from="README.md", to=".", onetime=true},
   {from="src/CMakeLists.txt", to="src/."},
+  {from="vendor/CMakeLists.txt", to="vendor/."},
 ]
 [parameters]
 cpp_std = {type="enum", options=["17", "20"], default="20"}

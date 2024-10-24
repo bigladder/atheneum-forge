@@ -1,5 +1,5 @@
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path, PurePath
 
 import bigladder_boilerplate.core as bp
 
@@ -92,6 +92,9 @@ project_name = # <-- str
 # version_minor = 1
 # version_patch = 0
 # year = 2024
+# [dep.dep_name]
+# git_url = "" # <- add the url used to checkout this repository
+# git_checkout = "" <- add the branch, sha, or tag to check out
     """.strip()
     assert expected == actual
 
@@ -248,3 +251,46 @@ def test_derive_default_parameter_with_src_tree():
     actual = bp.derive_default_parameter(defaults, "headers_public", all_files)
     expected = {"include/abc/abc.h"}
     assert actual == expected
+
+
+def test_init_git_repo():
+    pass
+
+
+def test_setup_vendor():
+    dir = "/Users/frodo-baggins/projects/test-project/"
+    tgt_dir = PurePath(dir)
+    config = {}
+    actual = bp.setup_vendor(config, tgt_dir)
+    expected = []
+    assert actual == expected
+
+    if False:
+        config = {
+            "deps": {
+                "CLI11": {
+                    "git_url": "",
+                    "git_checkout": "",
+                },
+                "courier": {
+                    "git_url": "",
+                    "git_checkout": "",
+                },
+                "toml11": {
+                    "git_url": "",
+                    "git_checkout": "",
+                },
+            },
+        }
+        actual = bp.setup_vendor(config, tgt_dir)
+        expected = [
+            {
+                "dir": PurePath(dir),
+                "cmds": [
+                    "git submodule add https://github.com/CLIUtils/CLI11.git vendor/CLI11",
+                    "git submodule add https://github.com/bigladder/courier.git vendor/courier",
+                    "git submodule add https://github.com/ToruNiina/toml11.git vendor/toml11",
+                ],
+            }
+        ]
+        assert actual == expected

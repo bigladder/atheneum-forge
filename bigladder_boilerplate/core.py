@@ -250,7 +250,12 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
         else:
             required.append(f"{p} = # <-- {params[p]['type']}")
     all = required + defaults
-    return "\n".join(all)
+    postfix = """
+# [dep.dep_name]
+# git_url = "" # <- add the url used to checkout this repository
+# git_checkout = "" <- add the branch, sha, or tag to check out
+    """.strip()
+    return "\n".join(all) + "\n" + postfix
 
 
 def merge_defaults_into_config(
@@ -317,3 +322,14 @@ def list_all_files(dir_path: Path) -> set:
     for item in dir_path.glob("**/*"):
         result.add(str(item.relative_to(dir_path)))
     return result
+
+
+def setup_vendor(config: dict, tgt_dir: Path) -> list:
+    """
+    Return the list of commands necessary to set up vendor directory.
+    - config: dict, must contain the key "deps" which is a dict:
+        { "dep-name": {"git_url": "", "git_checkout": "branch/sha/tag name"}}
+    - tgt_dir: Path to directory where setup should occur. (root path)
+    RETURN: list of commands where a command is {"dir": Path, "cmds": list(str)}
+    """
+    return []

@@ -12,7 +12,7 @@ typer = "^0.12.5"
 tomli-w = "^1.1.0"
 
 [tool.poetry.scripts]
-blbp = "boilerplate.main:app"
+blbp = "bigladder_boilerplate.main:app"
 
 [tool.poetry.group.dev.dependencies]
 ruff = "^0.7.0"
