@@ -10,6 +10,7 @@ import tomllib
 from jinja2 import Template
 
 RECOGNIZED_CONFIG_KEYS = {"deps"}
+RECOGNIZED_SRC_DIRS = {"src", "include", "test", "app"}
 
 
 def render(template: str, config: dict) -> str:
@@ -348,7 +349,13 @@ def list_all_files(dir_path: Path) -> set:
     """
     result = set()
     for item in dir_path.glob("**/*"):
-        if item.is_relative_to(dir_path / "vendor"):
+        candidate = str(item.relative_to(dir_path))
+        is_src = False
+        for dir_name in RECOGNIZED_SRC_DIRS:
+            if candidate.startswith(dir_name):
+                is_src = True
+                break
+        if not is_src:
             continue
         result.add(str(item.relative_to(dir_path)))
     return result
