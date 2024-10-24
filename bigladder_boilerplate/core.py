@@ -354,14 +354,16 @@ def setup_vendor(config: dict, tgt_dir: Path, dry_run: bool = False) -> list:
     return [{"dir": tgt_dir, "cmds": cmds}]
 
 
-def init_git_repo(tgt_dir: Path|str) -> list:
+def init_git_repo(tgt_dir: Path | str) -> list:
     """
-    Return the list of commands required to initialize a git repo.    
+    Return the list of commands required to initialize a git repo.
     RETURN: list of commands. See setup_vendor for structure.
     """
-    return [{
-        "dir": Path(tgt_dir),
-        "cmds": [
-            "git init --initial-branch=main",
-        ],
-    }]
+    return [
+        {
+            "dir": Path(tgt_dir),
+            "cmds": [
+                "git init --initial-branch=main",
+            ],
+        }
+    ]
