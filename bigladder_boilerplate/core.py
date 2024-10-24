@@ -324,12 +324,31 @@ def list_all_files(dir_path: Path) -> set:
     return result
 
 
-def setup_vendor(config: dict, tgt_dir: Path) -> list:
+def setup_vendor(config: dict, tgt_dir: Path, dry_run: bool = False) -> list:
     """
     Return the list of commands necessary to set up vendor directory.
     - config: dict, must contain the key "deps" which is a dict:
         { "dep-name": {"git_url": "", "git_checkout": "branch/sha/tag name"}}
     - tgt_dir: Path to directory where setup should occur. (root path)
+    - dry_run: bool, if True doesn't touch the file system.
     RETURN: list of commands where a command is {"dir": Path, "cmds": list(str)}
     """
-    return []
+    cmds = []
+    for dep_name in sorted(config.get("deps", {}).keys()):
+        tgt_dep = tgt_dir / "vendor" / dep_name
+        dep = config["deps"][dep_name]
+        if dry_run or not tgt_dep.exists():
+            cmd = f"git submodule add {dep['git_url']} vendor/{dep_name}"
+            cmds.append(cmd)
+            cmd = " && ".join(
+                [
+                    f"cd vendor/{dep_name}",
+                    "git fetch",
+                    f"git checkout {dep['git_checkout']}",
+                    "cd ../..",
+                ]
+            )
+            cmds.append(cmd)
+    if len(cmds) == 0:
+        return []
+    return [{"dir": tgt_dir, "cmds": cmds}]

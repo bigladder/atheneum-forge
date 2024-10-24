@@ -261,36 +261,44 @@ def test_setup_vendor():
     dir = "/Users/frodo-baggins/projects/test-project/"
     tgt_dir = PurePath(dir)
     config = {}
-    actual = bp.setup_vendor(config, tgt_dir)
+    actual = bp.setup_vendor(config, tgt_dir, dry_run=True)
     expected = []
     assert actual == expected
 
-    if False:
-        config = {
-            "deps": {
-                "CLI11": {
-                    "git_url": "",
-                    "git_checkout": "",
-                },
-                "courier": {
-                    "git_url": "",
-                    "git_checkout": "",
-                },
-                "toml11": {
-                    "git_url": "",
-                    "git_checkout": "",
-                },
+    config = {
+        "deps": {
+            "CLI11": {
+                "git_url": "https://github.com/CLIUtils/CLI11.git",
+                "git_checkout": "master",
             },
-        }
-        actual = bp.setup_vendor(config, tgt_dir)
-        expected = [
-            {
-                "dir": PurePath(dir),
-                "cmds": [
-                    "git submodule add https://github.com/CLIUtils/CLI11.git vendor/CLI11",
-                    "git submodule add https://github.com/bigladder/courier.git vendor/courier",
-                    "git submodule add https://github.com/ToruNiina/toml11.git vendor/toml11",
-                ],
-            }
-        ]
-        assert actual == expected
+            "courier": {
+                "git_url": "https://github.com/bigladder/courier.git",
+                "git_checkout": "main",
+            },
+            "toml11": {
+                "git_url": "https://github.com/ToruNiina/toml11.git",
+                "git_checkout": "1234567",
+            },
+        },
+    }
+    actual = bp.setup_vendor(config, tgt_dir, dry_run=True)
+    expected = [
+        {
+            "dir": PurePath(dir),
+            "cmds": [
+                "git submodule add https://github.com/CLIUtils/CLI11.git vendor/CLI11",
+                "cd vendor/CLI11 && git fetch && git checkout master && cd ../..",
+                "git submodule add https://github.com/bigladder/courier.git vendor/courier",
+                "cd vendor/courier && git fetch && git checkout main && cd ../..",
+                "git submodule add https://github.com/ToruNiina/toml11.git vendor/toml11",
+                "cd vendor/toml11 && git fetch && git checkout 1234567 && cd ../..",
+            ],
+        },
+    ]
+    assert len(actual) == len(expected)
+    for idx in range(len(expected)):
+        assert actual[idx]["dir"] == expected[idx]["dir"]
+        assert len(actual[idx]["cmds"]) == len(expected[idx]["cmds"])
+        for ca, ce in zip(actual[idx]["cmds"], expected[idx]["cmds"]):
+            assert ca == ce
+    assert actual == expected
