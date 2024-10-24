@@ -204,8 +204,13 @@ def generate(
 
 
 def derive_default_parameter(defaults: dict, key: str) -> any:
-    """ """
-    d = defaults[key]["default"]
+    """
+    Derive default parameters, running any computations.
+    - defaults: dict(str, {"default": any}), the dictionary of default parameters
+    - key: str, the key to fetch
+    RESULT: any, the processed default
+    """
+    d = defaults[key].get("default", None)
     if isinstance(d, str):
         if d.startswith("parameter:"):
             d = defaults[re.sub("parameter:", "", d)]["default"]
