@@ -247,11 +247,17 @@ def test_derive_default_parameter_with_src_tree():
         },
     }
     actual = bp.derive_default_parameter(defaults, "files_src", all_files)
-    expected = {"src/a.cpp", "src/b.cpp", "src/c.cpp"}
+    expected = [
+        {"path": "src/a.cpp", "name": "a.cpp", "code_path": "src/a.cpp"},
+        {"path": "src/b.cpp", "name": "b.cpp", "code_path": "src/b.cpp"},
+        {"path": "src/c.cpp", "name": "c.cpp", "code_path": "src/c.cpp"},
+    ]
     assert actual == expected
 
     actual = bp.derive_default_parameter(defaults, "headers_public", all_files)
-    expected = {"include/abc/abc.h"}
+    expected = [
+        {"path": "include/abc/abc.h", "name": "abc.h", "code_path": "abc/abc.h"},
+    ]
     assert actual == expected
 
 

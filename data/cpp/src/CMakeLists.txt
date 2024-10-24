@@ -1,13 +1,13 @@
 # Main library
 set(library_sources
     {%- for src in files_src %}
-    {{ src }}
+    {{ src.name }}
     {%- endfor %}
     {%- for h in headers_public %}
-    {{ h }}
+    {{ h.code_path }}
     {%- endfor %}
     {%- for h in headers_private %}
-    {{ h }}
+    {{ h.name }}
     {%- endfor %}
 )
 
