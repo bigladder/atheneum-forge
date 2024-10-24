@@ -117,7 +117,8 @@ start_year = 2022
 # version_patch = 0
 # year = 2024
     """
-    actual = bp.read_config(config_toml, manifest["parameters"])
+    actual, is_ok = bp.read_config(config_toml, manifest["parameters"])
+    assert is_ok == True
     expected = {
         "project_name": "bob",
         "start_year": 2022,
@@ -157,4 +158,50 @@ def test_build_path_3():
     path_str = "**/*.cpp"
     actual = bp.build_path(starting_dir, path_str)
     expected = {"path": Path("/projects/example/data"), "glob": "**/*.cpp"}
+    assert actual == expected
+
+
+def test_merge_defaults_into_config():
+    config = {
+        "project_name": "bob",
+        "start_year": 2022,
+    }
+    defaults = {
+        "project_name": {"type": "str"},
+        "start_year": {
+            "type": "int:year",
+            "default": "parameter:year",
+        },
+        "year": {
+            "type": "int:year",
+            "default": "current_year()",
+        },
+        "version_major": {
+            "type": "int:>=0",
+            "default": 0,
+        },
+        "version_minor": {
+            "type": "int:>=0",
+            "default": 1,
+        },
+        "version_patch": {
+            "type": "int:>=0",
+            "default": 0,
+        },
+        "use_app": {
+            "type": "bool",
+            "default": False,
+        },
+    }
+    actual, is_ok = bp.merge_defaults_into_config(config, defaults)
+    assert is_ok == True
+    expected = {
+        "project_name": "bob",
+        "start_year": 2022,
+        "year": datetime.now().year,
+        "version_major": 0,
+        "version_minor": 1,
+        "version_patch": 0,
+        "use_app": False,
+    }
     assert actual == expected

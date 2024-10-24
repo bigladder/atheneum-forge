@@ -42,10 +42,13 @@ def gen(config_path: str, project_type: str):
         manifest = tomllib.load(fid)
     with open(p_config, "r") as fid:
         config_toml = fid.read()
-    config = read_config(config_toml, manifest["parameters"])
+    config, is_ok = read_config(config_toml, manifest["parameters"])
+    if not is_ok:
+        print("[ERROR] error while processing config file")
+        sys.exit(1)
     result, is_ok = generate(src_dir, tgt_dir, manifest, config, dry_run=False)
     if not is_ok:
-        print("[ERROR]  error while processing... not all tasks completed successfully")
+        print("[ERROR] error while processing... not all tasks completed successfully")
     for r in result:
         print(f"- {r}")
 

@@ -1,9 +1,10 @@
-import tomllib
-import tomli_w
-from pathlib import Path
-import shutil
 from datetime import datetime
+from pathlib import Path
 import re
+import shutil
+import sys
+import tomli_w
+import tomllib
 
 from jinja2 import Template
 
@@ -58,6 +59,16 @@ def process_single_file(
     dry_run: bool,
     result: [],
 ) -> bool:
+    """
+    Process a single file from from_path to to_path.
+    - from_path: path to a file to reference from
+    - to_path: path to a file to generate/update
+    - config: dict of parameters or None. If a dict, treat from_path as template.
+    - onetime: bool, if True do not regenerate if to_path exists
+    - dry_run: bool, if True, do a dry run. Don't actually update/generate.
+    - result: a list of result strings indicating the tasks run (or dry runned).
+    RESULT: True if all successful, else False
+    """
     is_ok = True
     prefix = None
     if onetime and to_path.exists():
@@ -118,24 +129,23 @@ def process_files(
             print(
                 "[ERROR] glob not allowed in 'to' path. Path must be directory or file."
             )
-            print(f"... got {to_path_with_glob['path']}")
+            print(f"... 'to' path  : {to_path_with_glob['path']}")
+            print(f"... 'glob' path: {to_path_with_glob['glob']}")
             sys.exit(1)
         to_path = to_path_with_glob["path"]
         if to_path.is_dir():
             to_path.mkdir(parents=True, exist_ok=True)
-            to_path = to_path / from_path.name
         else:
             to_path.parent.mkdir(parents=True, exist_ok=True)
         from_path_with_glob = build_path(src_dir, f["from"])
         if from_path_with_glob["glob"] is None:
             from_path = from_path_with_glob["path"]
             is_ok = process_single_file(
-                from_path, to_path, config, onetime, dry_run, result
+                from_path, to_path / from_path.name, config, onetime, dry_run, result
             )
         else:
-            if not to_path.is_dir():
-                print("[ERROR] to_path must be a dir when globs are in from path")
-                sys.exit(1)
+            if not to_path.exists():
+                to_path.mkdir(parents=True, exist_ok=True)
             from_path = from_path_with_glob["path"]
             glob = from_path_with_glob["glob"]
             for fpath in from_path.glob(glob):
@@ -193,6 +203,18 @@ def generate(
     return (result, True)
 
 
+def derive_default_parameter(defaults: dict, key: str) -> any:
+    """ """
+    d = defaults[key]["default"]
+    if isinstance(d, str):
+        if d.startswith("parameter:"):
+            d = defaults[re.sub("parameter:", "", d)]["default"]
+        if d.endswith("()"):
+            if d == "current_year()":
+                d = datetime.now().year
+    return d
+
+
 def create_config_toml(manifest: dict) -> str:
     """
     Create config TOML data from the given manifest.
@@ -202,12 +224,7 @@ def create_config_toml(manifest: dict) -> str:
     defaults = []
     for p in sorted(params.keys()):
         if "default" in params[p]:
-            d = params[p]["default"]
-            if isinstance(d, str) and d.startswith("parameter:"):
-                d = params[re.sub("parameter:", "", d)]["default"]
-            if isinstance(d, str) and d.endswith("()"):
-                if d == "current_year()":
-                    d = datetime.now().year
+            d = derive_default_parameter(params, p)
             value_str = tomli_w.dumps({p: d}).strip()
             defaults.append(f"# {value_str}")
         else:
@@ -216,16 +233,26 @@ def create_config_toml(manifest: dict) -> str:
     return "\n".join(all)
 
 
-def read_config(config_toml: str, parameters: dict) -> dict:
+def merge_defaults_into_config(config: dict, defaults: dict) -> (dict, bool):
+    """ """
+    result = {}
+    for p in config.keys():
+        if p not in defaults:
+            print("[WARNING] unrecognized key '{p}' in config")
+        result[p] = config[p]
+    for p in defaults.keys():
+        if p not in config:
+            if "default" not in defaults[p]:
+                print(f"[ERROR] missing required config parameter '{p}'")
+                return result, False
+            result[p] = derive_default_parameter(defaults, p)
+    return result, True
+
+
+def read_config(config_toml: str, parameters: dict) -> (dict, bool):
     """
     Read the config toml and mix in defaults from manifest's parameters section.
+    RETURN: config dict and flag: True if all processes executed OK, else False.
     """
     config = tomllib.loads(config_toml)
-    for p in parameters.keys():
-        if p not in config and "default" in parameters[p]:
-            raw_value = parameters[p]["default"]
-            if isinstance(raw_value, str) and raw_value.endswith("()"):
-                if raw_value == "current_year()":
-                    raw_value = datetime.now().year
-            config[p] = raw_value
-    return config
+    return merge_defaults_into_config(config, parameters)
