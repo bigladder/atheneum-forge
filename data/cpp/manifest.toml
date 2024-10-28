@@ -1,6 +1,6 @@
 static = [
   {from=".clang-format", to="."},
-  {from=".gitignore", to="."},
+  {from=".gitignore", to=".", onetime=true},
   {from="cmake/*", to="cmake/."},
   {from=".github/*", to=".github/."},
   {from=".github/workflows/*", to=".github/workflows/."},
@@ -12,15 +12,21 @@ template = [
   {from="src/CMakeLists.txt", to="src/."},
   {from="vendor/CMakeLists.txt", to="vendor/."},
   {from="test/CMakeLists.txt", to="test/."},
+  {from="Dockerfile.format", to="."},
+  {from="app/CMakeLists.txt", to="app/.", if="use_app"},
 ]
 [parameters]
 cpp_std = {type="enum", options=["17", "20"], default="20"}
-files_app = {type="str:glob", default="app/[a-zA-Z]*.cpp"}
-files_src = {type="str:glob", default="src/[a-zA-Z]*.cpp"}
-files_test = {type="str:glob", default="test/[a-zA-Z]*.cpp"}
-headers_private = {type="str:glob", default="src/[a-zA-Z]*.h"}
-headers_public = {type="str:glob", default="include/**/[a-zA-Z]*.h"}
+files_app = {type="str:glob", default="app/[a-zA-Z]*.cpp", private=true}
+files_app_config = {type="str:glob", default="app/[a-zA-Z]*.*.in", private=true}
+files_src = {type="str:glob", default="src/[a-zA-Z]*.cpp", private=true}
+files_src_config = {type="str:glob", default="app/[a-zA-Z]*.*.in", private=true}
+files_test = {type="str:glob", default="test/[a-zA-Z]*.cpp", private=true}
+headers_config = {type="str:glob", default="include/**/[a-zA-Z]*.*.in", private=true}
+headers_private = {type="str:glob", default="src/[a-zA-Z]*.h", private=true}
+headers_public = {type="str:glob", default="include/**/[a-zA-Z]*.h", private=true}
 project_name = {type="str"}
+project_short_description = {type="str", default=""}
 start_year = {type="int:year", default="parameter:year"}
 use_app = {type="bool", default=false}
 version_major = {type="int:>=0", default=0}

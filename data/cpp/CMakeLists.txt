@@ -1,10 +1,26 @@
+# Copyright (c) {% if start_year is defined and start_year != year %}{{ start_year }} - {% endif %}{{ year }} Big Ladder Software LLC. All rights reserved.
+# See the LICENSE.txt file for additional terms and conditions.
+# NOTE: THIS FILE IS AUTO-GENERATED. DO NOT EDIT.
 cmake_minimum_required(VERSION 3.10) # required for gtest_discover_tests
 
 project({{ project_name | lower }}
-    VERSION {{ version_major }}.{{ version_minor }}.{{ version_patch }})
+    VERSION {{ version_major }}.{{ version_minor }}.{{ version_patch }}
+{%- if project_short_description is defined %}
+    DESCRIPTION "{{ project_short_description }}"
+{%- endif %}
+    LANGUAGES CXX
+)
 
 # NOTE: Required for some dependencies to build (e.g., toml11).
 set(CMAKE_CXX_STANDARD {{ cpp_std }})
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
+{%- for config in headers_config %}
+configure_file(
+    ${PROJECT_SOURCE_DIR}/include/{{ config.code_path }}
+    ${PROJECT_BINARY_DIR}/include/{{ config.code_path|replace(".in", "") }}
+)
+{%- endfor %}
 
 # Set a default build type if none was specified
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)

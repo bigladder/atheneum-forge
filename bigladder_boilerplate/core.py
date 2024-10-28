@@ -1,4 +1,5 @@
 from datetime import datetime
+import filecmp
 from pathlib import Path, PurePath
 import re
 import shutil
@@ -83,7 +84,7 @@ def process_single_file(
         if config is None:
             if (
                 not to_path.exists()
-                or from_path.stat().st_mtime > to_path.stat().st_mtime
+                or not filecmp.cmp(from_path, to_path)
             ):
                 if not to_path.parent.exists():
                     to_path.parent.mkdir(parents=True)
@@ -132,6 +133,11 @@ def process_files(
         if not is_ok:
             return False
         onetime = f.get("onetime", False)
+        test_param = f.get("if", None)
+        if config is not None and test_param in config:
+            if not config[test_param]:
+                print(f"SKIPPING    : {f['from']}, skip flag is true")
+                continue
         to_path_with_glob = build_path(tgt_dir, f["to"])
         if to_path_with_glob["glob"] is not None:
             print(
@@ -257,6 +263,9 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
     required = []
     defaults = []
     for p in sorted(params.keys()):
+        is_private = params[p].get("private", False)
+        if is_private:
+            continue
         if "default" in params[p]:
             d = derive_default_parameter(params, p, all_files)
             value_str = tomli_w.dumps({p: d}).strip()
