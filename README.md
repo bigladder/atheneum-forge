@@ -30,16 +30,20 @@ Also, we can continue to roll it out one-by-one to different company projects an
 
 ## Concepts
 
-Template Repository: an authoratative repository of files that serve as templates
+**Template Repository**: an authoratative repository of files that serve as templates
+
 - currently included in this repository's data directory
 
-Target Repository: the actual source code repository to create / update
+**Target Repository**: the actual source code repository to create / update
+
 - this is the recipient of the template generation process
 
-manifest.toml: provides parameters and indications of how files in the template repository should be used
+**manifest.toml**: provides parameters and indications of how files in the template repository should be used
+
 - also includes information on dependencies
 
-config.toml: the in-project configuration information for this tool
+**config.toml**: the in-project configuration information for this tool
+
 - overrides and provides key parameters from the manifest
 - this is meant to be the "single-source of truth" for items specified within
 
