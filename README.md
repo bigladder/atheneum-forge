@@ -9,8 +9,23 @@ In contrast to a static template, the main ideas of the project are to:
 - but **ALSO** be able to keep that "scaffolding" up-to-date based on an authoratative source
 - and also automate several project-level tasks such as:
   - version updating
+  - checking submodules (fmt, google test, courier) to see if there are newer versions and automating their update
   - keeping copyright headers up-to-date
   - automating the addition of "include guards" (for C++)
+
+
+## Current Status
+
+This project is still young.
+However, we have demonstrated the ability to generate/update the boilerplate for the ERIN project.
+In so doing, no capability was lost and that project still builds and passes all tests.
+
+The "task helper" system mentioned above is still just at the idea stage and has not been implemented yet. 
+
+We'll know this project is mature when it can apply the python templates (pytheneum) to itself.
+
+As a suggestion, as we have needs to do a given task, we can add it here.
+Also, we can continue to roll it out one-by-one to different company projects and fix edge cases as they arise. 
 
 
 ## Concepts
