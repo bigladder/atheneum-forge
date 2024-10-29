@@ -97,6 +97,7 @@ project_name = # <-- str
 # git_url = "" # <- add the url used to checkout this repository
 # git_checkout = "" # <- add the branch, sha, or tag to check out
 # add_to_cmake = true # <- if true, add to CMakeLists.txt files
+# link_library_spec = "" # <- how library should appear in target_link_library(.); if blank, use project name
     """.strip()
     assert expected == actual
 

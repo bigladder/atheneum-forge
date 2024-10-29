@@ -284,6 +284,8 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
             dep_strings.append("add_to_cmake = true")
         else:
             dep_strings.append("add_to_cmake = false")
+        if "link_library_spec" in dep and len(dep["link_library_spec"]) > 0:
+            dep_strings.append(f"link_library_spec = \"{dep['link_library_spec']}\"")
     dep_strings.append(
         """
 # [[deps]]
@@ -291,6 +293,7 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
 # git_url = "" # <- add the url used to checkout this repository
 # git_checkout = "" # <- add the branch, sha, or tag to check out
 # add_to_cmake = true # <- if true, add to CMakeLists.txt files
+# link_library_spec = "" # <- how library should appear in target_link_library(.); if blank, use project name
     """.strip()
     )
     postfix = "\n".join(dep_strings)
