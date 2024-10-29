@@ -11,7 +11,11 @@ target_link_libraries(${PROJECT_NAME}_tests
   GTest::gtest_main 
 {%- for dep in deps %}
 {%- if dep.add_to_cmake %}
+{%- if dep.link_library_spec is defined %}
+  {{ dep.link_library_spec }}
+{%- else %}
   {{ dep.name }}
+{%- endif %}
 {%- endif %}
 {%- endfor %}
 )

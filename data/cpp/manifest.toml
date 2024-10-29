@@ -32,6 +32,12 @@ project_name = {type="str"}
 project_short_description = {type="str", default=""}
 start_year = {type="int:year", default="parameter:year"}
 use_app = {type="bool", default=false}
+# if use_cmake_version is true, the version in the top-level CMakeLists.txt file
+# is the "single source of truth" and the boilerplate project assists in "bumping"
+# versions and the like. If set to false, the git history and tag system is used
+# as the single-source of truth for versioning. If use_cmake_version is set to false,
+# version_major, version_minor, and version_patch won't do anything.
+use_cmake_version = {type="bool", default=false}
 use_taskfile = {type="bool", default=false}
 version_major = {type="int:>=0", default=0}
 version_minor = {type="int:>=0", default=1}
@@ -47,3 +53,4 @@ name = "googletest"
 git_url = "https://github.com/google/googletest.git"
 git_checkout = "main"
 add_to_cmake = false # already explicitly added
+link_library_spec = "GTest::gtest_main"

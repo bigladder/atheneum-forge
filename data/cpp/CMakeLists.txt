@@ -4,7 +4,9 @@
 cmake_minimum_required(VERSION 3.10) # required for gtest_discover_tests
 
 project({{ project_name | lower }}
+{%- if use_cmake_version %}
     VERSION {{ version_major }}.{{ version_minor }}.{{ version_patch }}
+{%- endif %}
 {%- if project_short_description is defined %}
     DESCRIPTION "{{ project_short_description }}"
 {%- endif %}
@@ -47,11 +49,15 @@ endif ()
 
 include(build-options-interface)
 
+{%- if not use_cmake_version %}
 # Automatic generation of version info
 include(git-versioning)
 process_git_version()
 make_version_header()
 message(STATUS "Building ${PROJECT_NAME} ${${PROJECT_NAME}_version}")
+{%- else %}
+message(STATUS "Building ${PROJECT_NAME} ${PROJECT_VERSION}")
+{%- endif %}
 
 # Set up testing/coverage
 if (${PROJECT_NAME}_BUILD_TESTING)
