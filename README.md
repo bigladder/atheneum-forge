@@ -54,15 +54,16 @@ We hope to be able to get this project up on PyPI so that it will just be a pip 
 
 In the mean time, it can be used via poetry:
 
-    > # clone the repository
-    > poetry install
-    > poetry shell
-    > blbp --help
-    > blbp init-with-config path/to/new-or-existing/repo/config.toml cpp
-    > # edit the generated config.toml, fill in required data
-    > # now generate or update the scaffolding/boilerplate
-    > blbp gen path/to/new-or-existing/repo/config.toml cpp
-
+```
+> # clone the repository
+> poetry install
+> poetry shell
+> blbp --help
+> blbp init-with-config path/to/new-or-existing/repo/config.toml cpp
+> # edit the generated config.toml, fill in required data
+> # now generate or update the scaffolding/boilerplate
+> blbp gen path/to/new-or-existing/repo/config.toml cpp
+```
 
 ## Reference
 
