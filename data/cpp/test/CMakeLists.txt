@@ -7,7 +7,7 @@ set(test_sources
 add_executable(${PROJECT_NAME}_tests ${test_sources})
 
 target_link_libraries(${PROJECT_NAME}_tests
-  PRIVATE ${PROJECT_NAME}lib gtest ${PROJECT_NAME}_build_options
+  PRIVATE ${PROJECT_NAME} gtest ${PROJECT_NAME}_build_options
   GTest::gtest_main 
 {%- for dep in deps %}
 {%- if dep.add_to_cmake %}

@@ -1,4 +1,5 @@
 macro(initialize_submodules)
+  find_package(Git)
   if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
     set(git_modules_file "${PROJECT_SOURCE_DIR}/.gitmodules")
     if (EXISTS ${git_modules_file})

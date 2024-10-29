@@ -11,18 +11,25 @@ configure_file(
 {%- endif %}
 {%- for f in files_app %}
 
-add_executable({{ f.name|replace(".cpp", "") }}
+add_executable(APP_{{ f.name|replace(".cpp", "") }}
   {{ f.name }}
 )
-target_include_directories({{ f.name|replace(".cpp", "") }}
+set_target_properties(APP_{{ f.name|replace(".cpp", "") }}
+  PROPERTIES OUTPUT_NAME {{ f.name|replace(".cpp", "") }}
+)
+target_include_directories(APP_{{ f.name|replace(".cpp", "") }}
 	PUBLIC ${PROJECT_SOURCE_DIR}/include
 	PRIVATE ${PROJECT_BINARY_DIR}/app
 )
-target_link_libraries({{ f.name|replace(".cpp", "") }}
-  ${PROJECT_NAME}lib
+target_link_libraries(APP_{{ f.name|replace(".cpp", "") }}
+  ${PROJECT_NAME}
 {%- for dep in deps %}
 {%- if dep.add_to_cmake %}
+{%- if dep.link_library_spec is defined %}
+  {{ dep.link_library_spec }}
+{%- else %}
   {{ dep.name }}
+{%- endif %}
 {%- endif %}
 {%- endfor %}
 )
