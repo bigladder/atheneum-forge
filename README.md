@@ -8,10 +8,10 @@ In contrast to a static template, the main ideas of the project are to:
 - not only be able to generate a "scaffolding" for a new (or existing) project
 - but **ALSO** be able to keep that "scaffolding" up-to-date based on an authoratative source
 - and also automate several project-level tasks such as:
-  - version updating
-  - checking submodules (fmt, google test, courier) to see if there are newer versions and automating their update
-  - keeping copyright headers up-to-date
-  - automating the addition of "include guards" (for C++)
+    - version updating
+    - checking submodules (fmt, google test, courier) to see if there are newer versions and automating their update
+    - keeping copyright headers up-to-date
+    - automating the addition of "include guards" (for C++)
 
 
 ## Current Status
