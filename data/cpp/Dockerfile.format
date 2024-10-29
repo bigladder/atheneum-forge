@@ -1,8 +1,12 @@
-FROM silkeh/clang:18
+FROM silkeh/clang:{{ clang_format_version }}
 
 RUN mkdir /app
 
 WORKDIR /app
 
 SHELL ["/bin/sh", "-c"]
-CMD clang-format -i --style=file src/*.cpp include/**/*.h test/*.cpp {% if use_app %}apps/*.cpp{% endif %}
+CMD find src/ -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i --style=file && \
+  find include/ -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i --style=file && \
+  find test/ -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i --style=file{%- if use_app %} && \
+  find app/ -iname '*.h' -o -iname '*.cpp' | xargs clang-format -i --style=file{%- endif %}
+

@@ -3,7 +3,7 @@ static = [
   {from=".gitignore", to=".", onetime=true},
   {from="cmake/*", to="cmake/."},
   {from=".github/*", to=".github/."},
-  {from=".github/workflows/*", to=".github/workflows/."},
+  {from=".github/workflows/build-and-test.yml", to=".github/workflows/."},
 ]
 template = [
   {from="CMakeLists.txt", to="."},
@@ -14,8 +14,11 @@ template = [
   {from="test/CMakeLists.txt", to="test/."},
   {from="Dockerfile.format", to="."},
   {from="app/CMakeLists.txt", to="app/.", if="use_app"},
+  {from=".github/workflows/clang-format-check.yml", to=".github/workflows/."},
+  {from="Taskfile.yml", to=".", onetime=true, if="use_taskfile"},
 ]
 [parameters]
+clang_format_version = {type="int", default=16}
 cpp_std = {type="enum", options=["17", "20"], default="20"}
 files_app = {type="str:glob", default="app/[a-zA-Z]*.cpp", private=true}
 files_app_config = {type="str:glob", default="app/[a-zA-Z]*.*.in", private=true}
@@ -29,6 +32,7 @@ project_name = {type="str"}
 project_short_description = {type="str", default=""}
 start_year = {type="int:year", default="parameter:year"}
 use_app = {type="bool", default=false}
+use_taskfile = {type="bool", default=false}
 version_major = {type="int:>=0", default=0}
 version_minor = {type="int:>=0", default=1}
 version_patch = {type="int:>=0", default=0}

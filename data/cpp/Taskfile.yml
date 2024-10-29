@@ -1,0 +1,44 @@
+version: '3'
+
+vars:
+  PYTHON: python
+
+tasks:
+  docker-build:
+    desc: Builds a Docker container with useful utilities for project work
+    cmds:
+      - if [ -z "$(docker images -q format:ver18 2> /dev/null)" ]; then docker buildx build -f Dockerfile.format -t format:ver{{ clang_format_version }} .; fi
+
+  docker-format:
+    desc: Use docker to run clang-format
+    deps: ["docker-build"]
+    cmds:
+      - docker run -it --rm --mount type=bind,source="$(pwd)",target=/app format:ver{{ clang_format_version }}
+
+  docker-format-version:
+    desc: Get the version of clang-format in use
+    deps: ["docker-build"]
+    cmds:
+      - docker run -it --rm --mount type=bind,source="$(pwd)",target=/app format:ver18 clang-format --version
+
+  init:
+    desc: Initialize the build directory
+    cmds:
+      - mkdir build
+      - cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+
+  build:
+    desc: (Re)build the application
+    cmds:
+      - cmake --build build --config Debug -j 4
+
+  init-release:
+    desc: Initialize a release build
+    cmds:
+      - mkdir build
+      - cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+
+  build-release:
+    desc: Make a release build
+    cmds:
+      - cmake --build build --config Release -j 4
