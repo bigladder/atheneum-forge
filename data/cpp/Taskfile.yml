@@ -25,7 +25,7 @@ tasks:
     desc: Initialize the build directory
     cmds:
       - mkdir build
-      - cmake -H. -Bbuild -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1
+      - cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug -DCMAKE_EXPORT_COMPILE_COMMANDS=1
 
   build:
     desc: (Re)build the application
