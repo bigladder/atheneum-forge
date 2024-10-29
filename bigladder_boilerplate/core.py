@@ -82,10 +82,7 @@ def process_single_file(
         return True
     if not dry_run:
         if config is None:
-            if (
-                not to_path.exists()
-                or not filecmp.cmp(from_path, to_path)
-            ):
+            if not to_path.exists() or not filecmp.cmp(from_path, to_path):
                 if not to_path.parent.exists():
                     to_path.parent.mkdir(parents=True)
                 shutil.copyfile(from_path, to_path)
