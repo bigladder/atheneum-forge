@@ -324,3 +324,108 @@ def test_setup_vendor():
         for ca, ce in zip(actual[idx]["cmds"], expected[idx]["cmds"]):
             assert ca == ce
     assert actual == expected
+
+
+def test_gen_copyright():
+    copy_template = "COPYRIGHT (C) {% if start_year is defined and start_year != year %}{{ start_year }}-{% endif %}{{ year }} US"
+    year = datetime.now().year
+    start_year = 2020
+    params = {"year": year, "start_year": start_year}
+    all_files = {
+        "README.md",
+        "src/a.cpp",
+        "src/b.cpp",
+        "src/c.cpp",
+        "src/hidden.h",
+        "app/abc.cpp",
+        "include/abc/abc.h",
+    }
+    expected_copy = f"// COPYRIGHT (C) {start_year}-{year} US"
+    expected = {
+        "src/a.cpp": [expected_copy],
+        "src/b.cpp": [expected_copy],
+        "src/c.cpp": [expected_copy],
+        "src/hidden.h": [expected_copy],
+        "app/abc.cpp": [expected_copy],
+        "include/abc/abc.h" : [expected_copy],
+    }
+    actual = bp.gen_copyright(params, copy_template, all_files)
+    assert actual == expected
+
+
+def test_update_copyright():
+    file_content = """
+// COPYRIGHT (C) 2024 US
+#include <iostream>
+int main(void) {
+  std::cout << "Hello, World!";
+  return 0;
+}
+    """.strip()
+    copy_lines = ["// COPYRIGHT (C) 2024 US"]
+    expected = file_content
+    actual = bp.update_copyright(file_content, copy_lines)
+    print(f"EXPECT:\n{expected}")
+    print(f"ACTUAL:\n{actual}")
+    assert actual == expected
+
+    copy_lines = ["// COPYRIGHT (C) 2025 US"]
+    expected = """
+// COPYRIGHT (C) 2025 US
+#include <iostream>
+int main(void) {
+  std::cout << "Hello, World!";
+  return 0;
+}
+""".strip()
+    actual = bp.update_copyright(file_content, copy_lines)
+    print(f"EXPECT:\n{expected}")
+    print(f"ACTUAL:\n{actual}")
+    assert actual == expected
+
+    file_content = """
+#include <iostream>
+int main(void) {
+  std::cout << "Hello, World!";
+  return 0;
+}
+    """.strip()
+    copy_lines = ["// COPYRIGHT (C) 2025 US"]
+    expected = """
+// COPYRIGHT (C) 2025 US
+#include <iostream>
+int main(void) {
+  std::cout << "Hello, World!";
+  return 0;
+}
+""".strip()
+    actual = bp.update_copyright(file_content, copy_lines)
+    print(f"EXPECT:\n{expected}")
+    print(f"ACTUAL:\n{actual}")
+    assert actual == expected
+
+    file_content = ""
+    copy_lines = ["// COPYRIGHT (C) 2025 US"]
+    expected = "// COPYRIGHT (C) 2025 US"
+    actual = bp.update_copyright(file_content, copy_lines)
+    assert actual == expected
+
+    file_content = """
+// Copyright is a lost concept.
+#include <iostream>
+int main(void) {
+  std::cout << "Hello, World!";
+  return 0;
+}
+    """.strip()
+    expected = """
+// COPYRIGHT (C) 2025 US
+// Copyright is a lost concept.
+#include <iostream>
+int main(void) {
+  std::cout << "Hello, World!";
+  return 0;
+}
+    """.strip()
+    actual = bp.update_copyright(file_content, copy_lines)
+    assert actual == expected

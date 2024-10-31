@@ -12,6 +12,15 @@ from jinja2 import Template
 
 RECOGNIZED_CONFIG_KEYS = {"deps"}
 RECOGNIZED_SRC_DIRS = {"src", "include", "test", "app"}
+DEFAULT_LINE_COMMENTS_BY_EXT = {
+    "*.cpp": "// ",
+    "*.cpp.in": "// ",
+    "*.h": "// ",
+    "*.h.in": "// ",
+    "*.c": "// ",
+    "CMakeLists.txt": "# ",
+    "*.py": "# ",
+}
 
 
 def render(template: str, config: dict) -> str:
@@ -223,7 +232,7 @@ def derive_default_parameter(
     Derive default parameters, running any computations.
     - defaults: dict(str, {"default": any}), the dictionary of default parameters
     - key: str, the key to fetch
-    - src_tree: dict(str, [str]), maps a relative dir path to files in that dir
+    - all_files: set(str) | None, maps a relative dir path to files in that dir
         - e.g., {".": ["README.md"], "src": ["main.cpp"], "test": ["test.cpp"]}
     RESULT: any, the processed default
     """
@@ -432,3 +441,57 @@ def run_commands(cmds: list) -> bool:
                 print(f"[ERROR] error running '{cmd}'")
                 return False
     return True
+
+
+def gen_copyright(config: dict, copy_template: str, all_files: set) -> dict:
+    """
+    Generate copyright headers for the file tree.
+    """
+    copy = render(copy_template, config)
+    copy_lines = copy.splitlines()
+    result = {}
+    for file_name in all_files:
+        for match_str in DEFAULT_LINE_COMMENTS_BY_EXT.keys():
+            if PurePath(file_name).match(match_str):
+                prefix = DEFAULT_LINE_COMMENTS_BY_EXT[match_str]
+                result[file_name] = list(map(lambda line: prefix + line, copy_lines))
+    return result
+
+
+def update_copyright(file_content: str, copy_lines: list) -> str:
+    """
+    Update copyright for a file as lines, returning (possibly updated) content.
+    If the copy in the first N number of lines of file_content match the
+    copy lines substantially, then overwrite. Else, prepend.
+    """
+    file_lines = file_content.splitlines()
+    saved_file_lines = []
+    lines_match_substantially = True
+    for line_idx, cline in enumerate(copy_lines):
+        if line_idx < len(file_lines):
+            line = file_lines[line_idx]
+            if cline != line:
+                copy_items = cline.split()
+                existing_items = line.split()
+                if len(copy_items) > 1 and len(existing_items) > 1:
+                    if copy_items[1] != existing_items[1]:
+                        lines_match_substantially = False
+                        break
+                    if copy_items[0] != existing_items[0]:
+                        lines_match_substantially = False
+                        break
+                    continue
+                if len(copy_items) > 0 and len(existing_items) > 0:
+                    if copy_items[0] != existing_items[0]:
+                        lines_match_substantially = False
+                        break
+                    continue
+                lines_match_substantially = False
+                break
+    new_lines = []
+    new_lines.extend(copy_lines)
+    if lines_match_substantially:
+        new_lines.extend(file_lines[len(copy_lines):])
+    else:
+        new_lines.extend(file_lines)
+    return "\n".join(new_lines)
