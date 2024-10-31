@@ -1,3 +1,6 @@
+# Copyright (c) {% if start_year is defined and start_year != year %}{{ start_year }} - {% endif %}{{ year }} Big Ladder Software, LLC.
+# See the LICENSE.txt file for additional terms and conditions.
+# NOTE: THIS FILE IS AUTO-GENERATED. DO NOT EDIT.
 set(test_sources
 {%- for tf in files_test %}
   {{ tf.name }}
