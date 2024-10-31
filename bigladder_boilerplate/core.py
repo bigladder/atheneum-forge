@@ -491,7 +491,7 @@ def update_copyright(file_content: str, copy_lines: list) -> str:
     new_lines = []
     new_lines.extend(copy_lines)
     if lines_match_substantially:
-        new_lines.extend(file_lines[len(copy_lines):])
+        new_lines.extend(file_lines[len(copy_lines) :])
     else:
         new_lines.extend(file_lines)
     return "\n".join(new_lines)

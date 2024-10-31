@@ -347,7 +347,7 @@ def test_gen_copyright():
         "src/c.cpp": [expected_copy],
         "src/hidden.h": [expected_copy],
         "app/abc.cpp": [expected_copy],
-        "include/abc/abc.h" : [expected_copy],
+        "include/abc/abc.h": [expected_copy],
     }
     actual = bp.gen_copyright(params, copy_template, all_files)
     assert actual == expected
