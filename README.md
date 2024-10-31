@@ -20,7 +20,11 @@ This project is still young.
 However, we have demonstrated the ability to generate/update the boilerplate for the ERIN project.
 In so doing, no capability was lost and that project still builds and passes all tests.
 
-The "task helper" system mentioned above is still just at the idea stage and has not been implemented yet. 
+The "task helper" system mentioned above only has one item implemented:
+
+- automation of copyright header checking
+
+The remainder of the tasks remain to be implemented.
 
 We'll know this project is mature when it can apply the python templates (pytheneum) to itself.
 
