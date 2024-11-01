@@ -8,7 +8,7 @@ import tomllib
 
 import typer
 
-import bigladder_boilerplate.core as core
+import atheneum_forge.core as core
 
 
 app = typer.Typer()

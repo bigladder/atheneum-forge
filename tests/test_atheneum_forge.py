@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path, PurePath
 
-import bigladder_boilerplate.core as bp
+import atheneum_forge.core as af
 
 
 def test_template():
@@ -12,7 +12,7 @@ def test_template():
 cmake_minimum_required(VERSION 3.10) # required for gtest_discover_tests
 project({{ project_name | lower }}) # Replace
     """
-    actual = bp.render(template, config)
+    actual = af.render(template, config)
     expected = """
 cmake_minimum_required(VERSION 3.10) # required for gtest_discover_tests
 project(athenium) # Replace
@@ -30,7 +30,7 @@ template = [
   {from="CMakeLists.txt", to="."}
 ]
     """
-    data = bp.read_manifest(toml_str)
+    data = af.read_manifest(toml_str)
     assert len(data) > 0
     assert "static" in data
     assert "template" in data
@@ -52,13 +52,13 @@ template = [
   {from="CMakeLists.txt", to="."}
 ]
     """
-    manifest = bp.read_manifest(toml_str)
+    manifest = af.read_manifest(toml_str)
     repo_dir = "./data"
     target = "../new_repo"
     config = {
         "project_name": "Athenium",
     }
-    results, is_ok = bp.generate(repo_dir, target, manifest, config, dry_run=True)
+    results, is_ok = af.generate(repo_dir, target, manifest, config, dry_run=True)
     assert is_ok == True
     assert len(results) == 3
 
@@ -82,8 +82,8 @@ version_minor = {type="int:>=0", default=1}
 version_patch = {type="int:>=0", default=0}
 use_app = {type="bool", default=false}
     """
-    data = bp.read_manifest(toml_str)
-    actual = bp.create_config_toml(data)
+    data = af.read_manifest(toml_str)
+    actual = af.create_config_toml(data)
     expected = """
 project_name = # <-- str
 # start_year = 2024
@@ -113,7 +113,7 @@ version_minor = {type="int:>=0", default=1}
 version_patch = {type="int:>=0", default=0}
 use_app = {type="bool", default=false}
     """
-    manifest = bp.read_manifest(manifest_toml)
+    manifest = af.read_manifest(manifest_toml)
     config_toml = """
 project_name = "bob"
 start_year = 2022
@@ -123,7 +123,7 @@ start_year = 2022
 # version_patch = 0
 # year = 2024
     """
-    actual, is_ok = bp.read_config(config_toml, manifest["parameters"])
+    actual, is_ok = af.read_config(config_toml, manifest["parameters"])
     assert is_ok == True
     expected = {
         "project_name": "bob",
@@ -140,7 +140,7 @@ start_year = 2022
 def test_build_path():
     starting_dir = Path("/projects/example/data")
     path_str = "cmake/superstuff.cmake"
-    actual = bp.build_path(starting_dir, path_str)
+    actual = af.build_path(starting_dir, path_str)
     expected = {
         "path": Path("/projects/example/data/cmake/superstuff.cmake"),
         "glob": None,
@@ -151,7 +151,7 @@ def test_build_path():
 def test_build_path_2():
     starting_dir = Path("/projects/example/data")
     path_str = "cmake/*.cmake"
-    actual = bp.build_path(starting_dir, path_str)
+    actual = af.build_path(starting_dir, path_str)
     expected = {
         "path": Path("/projects/example/data/cmake/"),
         "glob": "*.cmake",
@@ -162,7 +162,7 @@ def test_build_path_2():
 def test_build_path_3():
     starting_dir = Path("/projects/example/data")
     path_str = "**/*.cpp"
-    actual = bp.build_path(starting_dir, path_str)
+    actual = af.build_path(starting_dir, path_str)
     expected = {"path": Path("/projects/example/data"), "glob": "**/*.cpp"}
     assert actual == expected
 
@@ -199,7 +199,7 @@ def test_merge_defaults_into_config():
             "default": False,
         },
     }
-    actual, is_ok = bp.merge_defaults_into_config(config, defaults)
+    actual, is_ok = af.merge_defaults_into_config(config, defaults)
     assert is_ok == True
     expected = {
         "project_name": "bob",
@@ -214,15 +214,15 @@ def test_merge_defaults_into_config():
 
 
 def test_derive_default_param():
-    actual = bp.derive_default_parameter({}, "foo")
+    actual = af.derive_default_parameter({}, "foo")
     expected = None
     assert actual == expected
 
-    actual = bp.derive_default_parameter({"foo": {}}, "foo")
+    actual = af.derive_default_parameter({"foo": {}}, "foo")
     expected = None
     assert actual == expected
 
-    actual = bp.derive_default_parameter({"foo": {"default": "bar"}}, "foo")
+    actual = af.derive_default_parameter({"foo": {"default": "bar"}}, "foo")
     expected = "bar"
     assert actual == expected
 
@@ -247,7 +247,7 @@ def test_derive_default_parameter_with_src_tree():
             "default": "include/*/*.h",
         },
     }
-    actual = bp.derive_default_parameter(defaults, "files_src", all_files)
+    actual = af.derive_default_parameter(defaults, "files_src", all_files)
     expected = [
         {"path": "src/a.cpp", "name": "a.cpp", "code_path": "src/a.cpp"},
         {"path": "src/b.cpp", "name": "b.cpp", "code_path": "src/b.cpp"},
@@ -255,7 +255,7 @@ def test_derive_default_parameter_with_src_tree():
     ]
     assert actual == expected
 
-    actual = bp.derive_default_parameter(defaults, "headers_public", all_files)
+    actual = af.derive_default_parameter(defaults, "headers_public", all_files)
     expected = [
         {"path": "include/abc/abc.h", "name": "abc.h", "code_path": "abc/abc.h"},
     ]
@@ -264,7 +264,7 @@ def test_derive_default_parameter_with_src_tree():
 
 def test_init_git_repo():
     dir = "/Users/frodo-baggins/projects/test-project/"
-    actual = bp.init_git_repo(dir)
+    actual = af.init_git_repo(dir)
     expected = [
         {
             "dir": PurePath(dir),
@@ -280,7 +280,7 @@ def test_setup_vendor():
     dir = "/Users/frodo-baggins/projects/test-project/"
     tgt_dir = PurePath(dir)
     config = {}
-    actual = bp.setup_vendor(config, tgt_dir, dry_run=True)
+    actual = af.setup_vendor(config, tgt_dir, dry_run=True)
     expected = []
     assert actual == expected
 
@@ -303,7 +303,7 @@ def test_setup_vendor():
             },
         ],
     }
-    actual = bp.setup_vendor(config, tgt_dir, dry_run=True)
+    actual = af.setup_vendor(config, tgt_dir, dry_run=True)
     expected = [
         {
             "dir": PurePath(dir),
@@ -349,7 +349,7 @@ def test_gen_copyright():
         "app/abc.cpp": [expected_copy],
         "include/abc/abc.h": [expected_copy],
     }
-    actual = bp.gen_copyright(params, copy_template, all_files)
+    actual = af.gen_copyright(params, copy_template, all_files)
     assert actual == expected
 
 
@@ -364,7 +364,7 @@ int main(void) {
     """.strip()
     copy_lines = ["// COPYRIGHT (C) 2024 US"]
     expected = file_content
-    actual = bp.update_copyright(file_content, copy_lines)
+    actual = af.update_copyright(file_content, copy_lines)
     print(f"EXPECT:\n{expected}")
     print(f"ACTUAL:\n{actual}")
     assert actual == expected
@@ -378,7 +378,7 @@ int main(void) {
   return 0;
 }
 """.strip()
-    actual = bp.update_copyright(file_content, copy_lines)
+    actual = af.update_copyright(file_content, copy_lines)
     print(f"EXPECT:\n{expected}")
     print(f"ACTUAL:\n{actual}")
     assert actual == expected
@@ -399,7 +399,7 @@ int main(void) {
   return 0;
 }
 """.strip()
-    actual = bp.update_copyright(file_content, copy_lines)
+    actual = af.update_copyright(file_content, copy_lines)
     print(f"EXPECT:\n{expected}")
     print(f"ACTUAL:\n{actual}")
     assert actual == expected
@@ -407,7 +407,7 @@ int main(void) {
     file_content = ""
     copy_lines = ["// COPYRIGHT (C) 2025 US"]
     expected = "// COPYRIGHT (C) 2025 US"
-    actual = bp.update_copyright(file_content, copy_lines)
+    actual = af.update_copyright(file_content, copy_lines)
     assert actual == expected
 
     file_content = """
@@ -427,5 +427,5 @@ int main(void) {
   return 0;
 }
     """.strip()
-    actual = bp.update_copyright(file_content, copy_lines)
+    actual = af.update_copyright(file_content, copy_lines)
     assert actual == expected
