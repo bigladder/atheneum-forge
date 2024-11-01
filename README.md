@@ -1,4 +1,4 @@
-# Big Ladder Boilerplate
+# Atheneum Forge
 
 This project is a boiler-plate generator.
 Although it is intended to support multiple types of source code, it currently only supports C++.
@@ -62,11 +62,11 @@ In the mean time, it can be used via poetry:
 > # clone the repository
 > poetry install
 > poetry shell
-> blbp --help
-> blbp init-with-config path/to/new-or-existing/repo/config.toml cpp
+> aforge --help
+> aforge init-with-config path/to/new-or-existing/repo/config.toml cpp
 > # edit the generated config.toml, fill in required data
 > # now generate or update the scaffolding/boilerplate
-> blbp gen path/to/new-or-existing/repo/config.toml cpp
+> aforge gen path/to/new-or-existing/repo/config.toml cpp
 ```
 
 ## Reference
