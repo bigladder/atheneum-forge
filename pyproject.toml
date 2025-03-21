@@ -1,25 +1,30 @@
-[tool.poetry]
+[project]
 name = "atheneum-forge"
 version = "0.1.0"
 description = "Project boilerplate and build system scaffolding generation and maintenance."
-authors = ["Big Ladder Software <info@bigladdersoftware.com>"]
+authors = [{ name = "Big Ladder Software", email = "info@bigladdersoftware.com" }]
+requires-python = "~=3.11"
 readme = "README.md"
+dependencies = [
+    "jinja2>=3.1.4,<4",
+    "typer>=0.12.5,<0.13",
+    "tomli-w>=1.1.0,<2",
+]
 
-[tool.poetry.dependencies]
-python = "^3.11"
-jinja2 = "^3.1.4"
-typer = "^0.12.5"
-tomli-w = "^1.1.0"
-
-[tool.poetry.scripts]
+[project.scripts]
 aforge = "atheneum_forge.main:app"
 
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.7.0"
-pytest = "^8.3.3"
-python-lsp-server = "^1.12.0"
-black = "^24.10.0"
+[dependency-groups]
+dev = [
+    "ruff>=0.7.0,<0.8",
+    "pytest>=8.3.3,<9",
+    "python-lsp-server>=1.12.0,<2",
+    "black>=24.10.0,<25",
+]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.uv.workspace]
+members = ["data/python/project", "data/python"]

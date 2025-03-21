@@ -29,7 +29,7 @@ The remainder of the tasks remain to be implemented.
 We'll know this project is mature when it can apply the python templates (pytheneum) to itself.
 
 As a suggestion, as we have needs to do a given task, we can add it here.
-Also, we can continue to roll it out one-by-one to different company projects and fix edge cases as they arise. 
+Also, we can continue to roll it out one-by-one to different company projects and fix edge cases as they arise.
 
 
 ## Concepts
@@ -56,14 +56,13 @@ Also, we can continue to roll it out one-by-one to different company projects an
 
 We hope to be able to get this project up on PyPI so that it will just be a pip install away!
 
-In the mean time, it can be used via poetry:
+In the mean time, it can be used with the uv dependency manager:
 
 ```
 > # clone the repository
-> poetry install
-> poetry shell
-> aforge --help
-> aforge init-with-config path/to/new-or-existing/repo/config.toml cpp
+> uv sync
+> uv run aforge --help
+> uv run aforge init-with-config path/to/new-or-existing/repo/ cpp
 > # edit the generated config.toml, fill in required data
 > # now generate or update the scaffolding/boilerplate
 > aforge gen path/to/new-or-existing/repo/config.toml cpp
