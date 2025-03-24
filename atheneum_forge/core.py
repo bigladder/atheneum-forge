@@ -1,16 +1,16 @@
-from datetime import datetime
 import filecmp
-from pathlib import Path, PurePath
+import logging
 import re
 import shutil
 import subprocess
 import sys
-import tomli_w
 import tomllib
-import logging
+from datetime import datetime
+from pathlib import Path, PurePath
+from typing import Any, List
 
+import tomli_w
 from jinja2 import Template
-from typing import List, Any
 
 log = logging.getLogger("rich")
 
@@ -69,13 +69,8 @@ def build_path(starting_dir: Path, path_str: str) -> dict:
     return {"path": result, "glob": None if glob == "" else glob}
 
 
-def process_single_file(
-    from_path: Path,
-    to_path: Path,
-    config: dict | None,
-    onetime: bool,
-    dry_run: bool
-) -> str:
+# ruff: noqa: PLR0912
+def process_single_file(from_path: Path, to_path: Path, config: dict | None, onetime: bool, dry_run: bool) -> str:
     """
     Process a single file from from_path to to_path.
     - from_path: path to a file to reference from
@@ -128,12 +123,7 @@ def process_single_file(
 
 
 def process_files(
-    src_dir: Path,
-    tgt_dir: Path,
-    file_paths: list,
-    config: None | dict,
-    dry_run: bool,
-    status_list: List[str]
+    src_dir: Path, tgt_dir: Path, file_paths: list, config: None | dict, dry_run: bool, status_list: List[str]
 ) -> None:
     """
     Process files from src directory to target directory.
@@ -154,9 +144,7 @@ def process_files(
                 continue
         to_path_with_glob = build_path(tgt_dir, f["to"])
         if to_path_with_glob["glob"] is not None:
-            log.error(
-                "Glob not allowed in 'to' path. Path must be directory or file."
-            )
+            log.error("Glob not allowed in 'to' path. Path must be directory or file.")
             log.error(f"... 'to' path  : {to_path_with_glob['path']}")
             log.error(f"... 'glob' path: {to_path_with_glob['glob']}")
             sys.exit(1)
@@ -169,8 +157,8 @@ def process_files(
         if from_path_with_glob["glob"] is None:
             from_path = from_path_with_glob["path"]
             result = process_single_file(
-                from_path, to_path / from_path.name, config, onetime, dry_run
-                )
+                from_path, to_path / (f.get("oname") if "oname" in f else from_path.name), config, onetime, dry_run
+            )
             status_list.append(result)
         else:
             if not to_path.exists():
@@ -180,16 +168,11 @@ def process_files(
             for fpath in from_path.glob(glob):
                 if fpath.is_dir():
                     continue
-                result = process_single_file(
-                    fpath, to_path / fpath.name, config, onetime, dry_run
-                )
+                result = process_single_file(fpath, to_path / fpath.name, config, onetime, dry_run)
                 status_list.append(result)
-    return
 
 
-def generate(
-    source: str, target: str, manifest: dict, config: dict, dry_run: bool
-) -> list:
+def generate(source: str, target: str, manifest: dict, config: dict, dry_run: bool) -> list:
     """
     Generate (or regenerate) the manifest files in repo_dir at target.
     - source: path to repo directory
@@ -208,34 +191,12 @@ def generate(
             return result
         if not tgt_dir.exists():
             tgt_dir.mkdir(parents=True, exist_ok=True)
-    process_files(
-        src_dir,
-        tgt_dir,
-        manifest["static"],
-        config=None,
-        dry_run=dry_run,
-        status_list=result
-    )
-    # if not is_ok:
-    #     log.error("Encountered error processing static files... stopping")
-    #     return (result, False)
-    process_files(
-        src_dir,
-        tgt_dir,
-        manifest["template"],
-        config=config,
-        dry_run=dry_run,
-        status_list=result
-    )
-    # if not is_ok:
-    #     log.error("Encountered error processing template files... stopping")
-    #     return (result, False)
+    process_files(src_dir, tgt_dir, manifest["static"], config=None, dry_run=dry_run, status_list=result)
+    process_files(src_dir, tgt_dir, manifest["template"], config=config, dry_run=dry_run, status_list=result)
     return result
 
 
-def derive_default_parameter(
-    defaults: dict, key: str, all_files: set | None = None
-) -> Any:
+def derive_default_parameter(defaults: dict, key: str, all_files: set | None = None) -> Any:
     """
     Derive default parameters, running any computations.
     - defaults: dict(str, {"default": any}), the dictionary of default parameters
@@ -293,15 +254,15 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
         deps = sorted(dependencies, key=lambda d: d["name"])
         for dep in deps:
             dep_strings.append("[[deps]]")
-            dep_strings.append(f"name = \"{dep['name']}\"")
-            dep_strings.append(f"git_url = \"{dep['git_url']}\"")
-            dep_strings.append(f"git_checkout = \"{dep['git_checkout']}\"")
+            dep_strings.append(f'name = "{dep["name"]}"')
+            dep_strings.append(f'git_url = "{dep["git_url"]}"')
+            dep_strings.append(f'git_checkout = "{dep["git_checkout"]}"')
             if "add_to_cmake" in dep and dep["add_to_cmake"]:
                 dep_strings.append("add_to_cmake = true")
             else:
                 dep_strings.append("add_to_cmake = false")
             if "link_library_spec" in dep and len(dep["link_library_spec"]) > 0:
-                dep_strings.append(f"link_library_spec = \"{dep['link_library_spec']}\"")
+                dep_strings.append(f'link_library_spec = "{dep["link_library_spec"]}"')
     dep_strings.append(
         """
 # [[deps]]
@@ -316,9 +277,7 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
     return "\n".join(all) + "\n" + postfix
 
 
-def merge_defaults_into_config(
-    config: dict, defaults: dict, all_files: set | None = None
-) -> dict:
+def merge_defaults_into_config(config: dict, defaults: dict, all_files: set | None = None) -> dict:
     """
     Collect all available configuration parameters and their correct values.
     """
@@ -326,7 +285,7 @@ def merge_defaults_into_config(
     # For every attribute in the user-supplied configuration, check that the attribute is
     # 1. available in the manifest and
     # 2. of the type indicated by the manifest
-    for p in config.keys():
+    for p in config.keys():  # noqa: PLC0206
         if p not in defaults:
             if p not in RECOGNIZED_CONFIG_KEYS:
                 log.warn(f"Unrecognized key '{p}' in config")
@@ -337,9 +296,11 @@ def merge_defaults_into_config(
             v = config[p]
             result[p] = v
             if isinstance(data_type, str):
-                type_error = (f"Type mismatch in attribute {p}"
-                              f"\n... expected type: {{ data_type }}"
-                              f"\n... actual value : {{ repr(v) }}")
+                type_error = (
+                    f"Type mismatch in attribute {p}"
+                    f"\n... expected type: {{ data_type }}"
+                    f"\n... actual value : {{ repr(v) }}"
+                )
                 if data_type.startswith("str") and not isinstance(v, str):
                     raise TypeError(type_error)
                 if data_type.startswith("int") and not isinstance(v, int):
@@ -352,17 +313,15 @@ def merge_defaults_into_config(
                         raise TypeError("Enum error; {v} not in {options}")
     # For every attribute in the manifest, if it isn't called out in the user-supplied
     # config, populate its value with a correct default.
-    for p in defaults.keys():
-        if p not in config:
-            if "default" not in defaults[p]:
+    for k, v in defaults.items():
+        if k not in config:
+            if "default" not in v:
                 raise TypeError(f"Missing required config parameter '{p}'")
-            result[p] = derive_default_parameter(defaults, p, all_files)
+            result[k] = derive_default_parameter(defaults, k, all_files)
     return result
 
 
-def read_config(
-    config_toml: str, parameters: dict, all_files: set | None = None
-) -> dict:
+def read_config(config_toml: str, parameters: dict, all_files: set | None = None) -> dict:
     """
     Read the config toml and mix in defaults from manifest's parameters section.
     RETURN: config dict and flag: True if all processes executed OK, else False.
@@ -448,7 +407,7 @@ def run_commands(cmds: list) -> bool:
         for cmd in c["cmds"]:
             if not c["dir"].exists():
                 c["dir"].mkdir(parents=True)
-            result = subprocess.run(cmd, cwd=c["dir"], shell=True)
+            result = subprocess.run(cmd, cwd=c["dir"], shell=True, check=False)
             if result.returncode != 0:
                 log.error(f"Error running '{cmd}'.")
                 return False
@@ -463,9 +422,8 @@ def gen_copyright(config: dict, copy_template: str, all_files: set) -> dict:
     copy_lines = copy.splitlines()
     result = {}
     for file_name in all_files:
-        for match_str in DEFAULT_LINE_COMMENTS_BY_EXT.keys():
+        for match_str, prefix in DEFAULT_LINE_COMMENTS_BY_EXT.items():
             if PurePath(file_name).match(match_str):
-                prefix = DEFAULT_LINE_COMMENTS_BY_EXT[match_str]
                 result[file_name] = list(map(lambda line: prefix + line, copy_lines))
     return result
 
@@ -477,7 +435,6 @@ def update_copyright(file_content: str, copy_lines: list) -> str:
     copy lines substantially, then overwrite. Else, prepend.
     """
     file_lines = file_content.splitlines()
-    saved_file_lines = []
     lines_match_substantially = True
     for line_idx, cline in enumerate(copy_lines):
         if line_idx < len(file_lines):

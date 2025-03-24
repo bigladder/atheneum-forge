@@ -3,7 +3,7 @@ static = [
   {from=".github/workflows/*", to=".github/workflows/."},
   {from=".python-version", to="."},
   {from=".pre-commit-config.yaml", to="."},
-  {from="hello.py", to="hello.py"},
+  {from="uv.lock.gen", to=".", oname="uv.lock"},
 ]
 template = [
   {from="LICENSE.txt", to="."},

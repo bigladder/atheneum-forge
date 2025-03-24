@@ -2,32 +2,28 @@
 Copyright (C) 2024 Big Ladder Software, LLC. See LICENSE.txt for license information.
 """
 
-import sys
-from pathlib import Path
-import tomllib
 import logging
-import typer
-import rich
-from rich.logging import RichHandler
-from rich.highlighter import RegexHighlighter
-from rich.theme import Theme
-from logging import FileHandler
-
-import atheneum_forge.core as core
-
-from typing_extensions import Annotated
+import tomllib
 from enum import Enum
+from pathlib import Path
 
-logging.basicConfig(level=logging.INFO,
-                    format='%(message)s',
-                    handlers=[RichHandler()])
+import typer
+from rich.logging import RichHandler
+from typing_extensions import Annotated
+
+# from rich.highlighter import RegexHighlighter
+# from rich.theme import Theme
+from atheneum_forge import core
+
+logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler()])
 
 
 console_log = logging.getLogger("rich")
-formatter = logging.Formatter('%(asctime)s  [%(levelname)s]   %(message)s')
-file_handler = FileHandler("atheneum_forge_log.txt", mode='w')
-file_handler.setFormatter(formatter)
-console_log.addHandler(file_handler)
+# Optional file logger:
+# formatter = logging.Formatter('%(asctime)s  [%(levelname)s]   %(message)s')
+# file_handler = FileHandler("atheneum_forge_log.txt", mode='w')
+# file_handler.setFormatter(formatter)
+# console_log.addHandler(file_handler)
 
 app = typer.Typer(pretty_exceptions_enable=False)
 
@@ -50,22 +46,20 @@ class ProjectType(Enum):
     PY = "python"
 
 
-def setup_dir(config_path: Path,
-              project_type: str
-              ) -> dict:
+def setup_dir(config_path: Path, project_type: str) -> dict:
     """
     Helper function to do common setup.
     """
     p_config = Path(config_path).resolve()
     if not p_config.exists():
-        console_log.error(f"Config file \"{p_config}\" doesn't exist.")
+        console_log.error(f'Config file "{p_config}" doesn\'t exist.')
         raise typer.Exit(code=3)
     if not p_config.is_file():
-        console_log.error(f"Config \"{p_config}\" is not a file.")
+        console_log.error(f'Config "{p_config}" is not a file.')
     tgt_dir = p_config.parent
     src_dir = DATA_DIR / project_type
     if not src_dir.exists() or not src_dir.is_dir():
-        console_log.error(f"\"{src_dir}\" does not exist or is not a directory.")
+        console_log.error(f'"{src_dir}" does not exist or is not a directory.')
         raise typer.Exit(code=1)
     if not tgt_dir.exists() or not p_config.exists():
         console_log.error("Project directory or config file do not exist.")
@@ -92,9 +86,11 @@ def setup_dir(config_path: Path,
 
 
 @app.command()
-def gen(config_path: Annotated[Path, typer.Argument(help="Fully qualified path of the forge.toml file.")],
-        project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP,
-        init_submodules: bool = False):
+def gen(
+    config_path: Annotated[Path, typer.Argument(help="Fully qualified path of the forge.toml file.")],
+    project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP,
+    init_submodules: bool = False,
+):
     """
     (Re-)Generate project from template files.
     If initialize submodules is True, the config path must be within a git repo.
@@ -111,20 +107,22 @@ def gen(config_path: Annotated[Path, typer.Argument(help="Fully qualified path o
     )
     # if not is_ok:
     #     console_log.error("Error while processing... not all tasks completed successfully.")
-    if init_submodules: # TODO: check for cpp project
+    if init_submodules:  # TODO: check for cpp project
         cmds = core.setup_vendor(data["config"], data["p_config"].parent)
         is_ok = core.run_commands(cmds)
         if not is_ok:
             console_log.error("Error running commands...")
     for r in result:
-        console_log.info(f"- {r}", extra={"highlighter":None})
+        console_log.info(f"- {r}", extra={"highlighter": None})
 
 
 @app.command("init")
-def initialize_with_config(project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
-                     project_type: Annotated[str, typer.Argument()] = ProjectType.CPP.value,
-                     git_init: bool = False,
-                     force: bool = False):
+def initialize_with_config(
+    project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
+    project_type: Annotated[str, typer.Argument()] = ProjectType.CPP.value,
+    git_init: bool = False,
+    force: bool = False,
+):
     """
     Generate a directory and empty config file for the given project type. (Existing
     configuation files will not be overwritten without the --force flag.)
@@ -139,7 +137,9 @@ def initialize_with_config(project_path: Annotated[Path, typer.Argument(help="Di
     configuration_file = p_config / "forge.toml"
     if configuration_file.exists():
         if not force:
-            console_log.info(f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.', extra={"markup":True})
+            console_log.info(
+                f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.', extra={"markup": True}
+            )
             raise typer.Exit(1)
     with open(configuration_file, "w") as fid:
         fid.write(config_str)
@@ -149,11 +149,11 @@ def initialize_with_config(project_path: Annotated[Path, typer.Argument(help="Di
         core.run_commands(cmds)
 
 
-
 @app.command("update")
-def update_config(project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
-                  project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP):
-    ...
+def update_config(
+    project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
+    project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP,
+): ...
 
 
 @app.command()
@@ -161,7 +161,7 @@ def task_update_copyright(config_path: Path, project_type: str, silent: bool = F
     """
     Run a task to update copyright headers over all recognized files.
     """
-    typer.echo(f"Updating copyright header in files...")
+    typer.echo("Updating copyright header in files...")
     data = setup_dir(config_path, project_type)
     copy_data_by_file = core.gen_copyright(
         data["config"], data["manifest"]["task"]["copyright"]["copy"], data["all_files"]
@@ -180,6 +180,5 @@ def task_update_copyright(config_path: Path, project_type: str, silent: bool = F
                 fid.write(new_content)
             if not silent:
                 console_log.info(f"... updated copyright for {file_path}")
-        else:
-            if not silent:
-                console_log.info(f"... copyright up to date for {file_path}")
+        elif not silent:
+            console_log.info(f"... copyright up to date for {file_path}")
