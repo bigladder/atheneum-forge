@@ -1,0 +1,27 @@
+static = [
+  {from=".gitignore", to=".", onetime=true},
+  {from=".github/workflows/*", to=".github/workflows/."},
+  {from=".python-version", to="."},
+  {from=".pre-commit-config.yaml", to="."},
+  {from="hello.py", to="hello.py"},
+]
+template = [
+  {from="LICENSE.txt", to="."},
+  {from="README.md", to=".", onetime=true},
+  {from="Dockerfile.format", to="."},
+  {from="Taskfile.yml", to=".", onetime=true, if="use_taskfile"},
+]
+[parameters]
+project_name = {type="str"}
+project_short_description = {type="str", default=""}
+start_year = {type="int:year", default="parameter:year"}
+use_app = {type="bool", default=false}
+version_major = {type="int:>=0", default=0}
+version_minor = {type="int:>=0", default=1}
+version_patch = {type="int:>=0", default=0}
+year = {type="int:year", default="current_year()"}
+[[deps]]
+[task.copyright]
+copy = """
+Copyright (c) {% if start_year is defined and start_year != year %}{{ start_year }} - {% endif %}{{ year }} Big Ladder Software, LLC.
+See the LICENSE.txt file for additional terms and conditions."""
