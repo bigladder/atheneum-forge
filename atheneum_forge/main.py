@@ -90,7 +90,7 @@ def gen(
     config_path: Annotated[Path, typer.Argument(help="Fully qualified path of the forge.toml file.")],
     project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP,
     init_submodules: bool = False,
-):
+) -> None:
     """
     (Re-)Generate project from template files.
     If initialize submodules is True, the config path must be within a git repo.
@@ -122,7 +122,7 @@ def initialize_with_config(
     project_type: Annotated[str, typer.Argument()] = ProjectType.CPP.value,
     git_init: bool = False,
     force: bool = False,
-):
+) -> None:
     """
     Generate a directory and empty config file for the given project type. (Existing
     configuation files will not be overwritten without the --force flag.)
@@ -153,11 +153,11 @@ def initialize_with_config(
 def update_config(
     project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
     project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP,
-): ...
+) -> None: ...
 
 
 @app.command()
-def task_update_copyright(config_path: Path, project_type: str, silent: bool = False):
+def task_update_copyright(config_path: Path, project_type: str, silent: bool = False) -> None:
     """
     Run a task to update copyright headers over all recognized files.
     """
