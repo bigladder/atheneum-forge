@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 [project.scripts]
-aforge = "atheneum_forge.main:app"
+forge = "atheneum_forge.main:app"
 
 [dependency-groups]
 dev = [

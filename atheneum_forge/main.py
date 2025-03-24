@@ -92,7 +92,7 @@ def setup_dir(config_path: Path,
 
 
 @app.command()
-def gen(config_path: Annotated[Path, typer.Argument(help="Fully qualified path of the configuration.toml file.")],
+def gen(config_path: Annotated[Path, typer.Argument(help="Fully qualified path of the forge.toml file.")],
         project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP,
         init_submodules: bool = False):
     """
@@ -122,7 +122,7 @@ def gen(config_path: Annotated[Path, typer.Argument(help="Fully qualified path o
 
 @app.command("init")
 def initialize_with_config(project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
-                     project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP,
+                     project_type: Annotated[str, typer.Argument()] = ProjectType.CPP.value,
                      git_init: bool = False,
                      force: bool = False):
     """
@@ -131,19 +131,19 @@ def initialize_with_config(project_path: Annotated[Path, typer.Argument(help="Di
     If git-init is true, also initialize a git repository.
     """
     p_config = Path(project_path).resolve()
-    p_manifest = DATA_DIR / project_type.value / "manifest.toml"
+    p_manifest = DATA_DIR / project_type / "manifest.toml"
     with open(p_manifest, "rb") as fid:
         manifest = tomllib.load(fid)
     config_str = core.create_config_toml(manifest)
     p_config.mkdir(parents=True, exist_ok=True)
-    configuration_file = p_config / "configuration.toml"
+    configuration_file = p_config / "forge.toml"
     if configuration_file.exists():
         if not force:
             console_log.info(f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.', extra={"markup":True})
             raise typer.Exit(1)
     with open(configuration_file, "w") as fid:
         fid.write(config_str)
-        console_log.info(f"Generated {project_type.value} config file at {configuration_file}")
+        console_log.info(f"Generated {project_type} config file at {configuration_file}")
     if git_init:
         cmds = core.init_git_repo(p_config.parent)
         core.run_commands(cmds)

@@ -124,7 +124,6 @@ def process_single_file(
         prefix = "DRY-RUN(copy)     : "
     else:
         prefix = "DRY-RUN(render)   : "
-    #print(f"{prefix}{from_path} => {to_path}")
     return f"{prefix}{from_path} => {to_path}"
 
 
