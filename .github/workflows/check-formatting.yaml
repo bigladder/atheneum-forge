@@ -23,3 +23,7 @@ jobs:
           version: 0.9.9
           args: check
           src: "lattice"
+      - name: Static type checking
+        run: |
+          uv run mypy ${{env.REPOSITORY_NAME}}
+        continue-on-error: true
