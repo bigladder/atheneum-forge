@@ -12,7 +12,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Set Project Name
-        run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}')" >> $GITHUB_ENV
+        run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}' | sed '-,_,g')" >> $GITHUB_ENV
       - name: Run Ruff Format
         uses: astral-sh/ruff-action@v3
         with:
