@@ -3,7 +3,7 @@ name = "atheneum-forge"
 version = "0.1.0"
 description = "Project boilerplate and build system scaffolding generation and maintenance."
 authors = [{ name = "Big Ladder Software", email = "info@bigladdersoftware.com" }]
-requires-python = "~=3.11"
+requires-python = "~=3.10"
 readme = "README.md"
 dependencies = [
     "jinja2>=3.1.4,<4",

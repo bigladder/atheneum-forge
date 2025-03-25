@@ -16,13 +16,13 @@ jobs:
         with:
           version: 0.9.9
           args: format --check
-          src: "lattice"
+          src: ${{env.REPOSITORY_NAME}}
       - name: Run Ruff Linter
         uses: astral-sh/ruff-action@v3
         with:
           version: 0.9.9
           args: check
-          src: "lattice"
+          src: ${{env.REPOSITORY_NAME}}
       - name: Static type checking
         run: |
           uv run mypy ${{env.REPOSITORY_NAME}}

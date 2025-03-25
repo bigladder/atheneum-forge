@@ -2,7 +2,7 @@
 name = "python_generator"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = ">=3.11, <4"
+requires-python = "~=3.10"
 readme = "README.md"
 dependencies = []
 
