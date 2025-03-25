@@ -1,0 +1,31 @@
+name: Check Ruff formatting
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Set Project Name
+        run: echo "REPOSITORY_NAME=$(echo '${{ github.repository }}' | awk -F '/' '{print $2}' | sed 's/-/_/g')" >> $GITHUB_ENV
+      - name: Run Ruff Format
+        uses: astral-sh/ruff-action@v3
+        with:
+          version: 0.9.9
+          args: format --check
+          src: "${{env.REPOSITORY_NAME}}"
+      # - name: Run Ruff Linter
+      #   uses: astral-sh/ruff-action@v3
+      #   with:
+      #     version: 0.9.9
+      #     args: check
+      #     src: "${{env.REPOSITORY_NAME}}"
+      # - name: Static type checking
+      #   run: |
+      #     uv run mypy "${{env.REPOSITORY_NAME}}"
+      #   continue-on-error: true

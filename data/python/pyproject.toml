@@ -1,26 +1,18 @@
 [project]
-name = "atheneum-forge"
+name = "python_generator"
 version = "0.1.0"
-description = "Project boilerplate and build system scaffolding generation and maintenance."
-authors = [{ name = "Big Ladder Software", email = "info@bigladdersoftware.com" }]
+description = "Add your description here"
 requires-python = "~=3.10"
 readme = "README.md"
-dependencies = [
-    "jinja2>=3.1.4,<4",
-    "typer>=0.12.5,<0.13",
-    "tomli-w>=1.1.0,<2",
-]
-
-[project.scripts]
-forge = "atheneum_forge.main:app"
+dependencies = []
 
 [dependency-groups]
 dev = [
     "ruff",
     "pytest",
-    "python-lsp-server>=1.12.0,<2",
+    "doit",
     "pre-commit",
-    "mypy"
+    "mypy",
 ]
 
 [tool.ruff]
@@ -36,7 +28,6 @@ select = [
 ignore = [
     "F405", # undefined-local-with-import-star-usage
 ]
-
 [tool.ruff.lint.pylint]
 max-args = 6
 
@@ -52,3 +43,7 @@ disable_error_code = ["annotation-unchecked","import"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.uv]
+[tool.uv.sources]
+

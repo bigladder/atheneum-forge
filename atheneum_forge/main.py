@@ -2,112 +2,166 @@
 Copyright (C) 2024 Big Ladder Software, LLC. See LICENSE.txt for license information.
 """
 
-import sys
+import logging
+from enum import Enum
 from pathlib import Path
+
 import tomllib
-
 import typer
+from rich.logging import RichHandler
+from typing_extensions import Annotated
 
-import atheneum_forge.core as core
+# from rich.highlighter import RegexHighlighter
+# from rich.theme import Theme
+from atheneum_forge import core
+
+logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler()])
 
 
-app = typer.Typer()
+console_log = logging.getLogger("rich")
+# Optional file logger:
+# formatter = logging.Formatter('%(asctime)s  [%(levelname)s]   %(message)s')
+# file_handler = FileHandler("atheneum_forge_log.txt", mode='w')
+# file_handler.setFormatter(formatter)
+# console_log.addHandler(file_handler)
 
+app = typer.Typer(pretty_exceptions_enable=False)
 
 THIS_DIR = Path(__file__).resolve().parent
 DATA_DIR = (THIS_DIR / ".." / "data").resolve()
 
 
-def setup_dir(config_path: str, project_type: str) -> dict:
+# class FileStatusHighlighter(RegexHighlighter):
+#     """Apply style to generator and renderer messages."""
+
+#     base_style = "example."
+#     highlights = [r"(?P<status>([A-Z]*-?)])*[A-Z]"]
+
+
+# theme = Theme({"example.status": "bold magenta"})
+
+
+class ProjectType(Enum):
+    CPP = "cpp"
+    PY = "python"
+
+
+def setup_dir(config_path: Path, project_type: str) -> dict:
     """
     Helper function to do common setup.
     """
     p_config = Path(config_path).resolve()
     if not p_config.exists():
-        print(f"ERROR: config file doesn't exist: {p_config}")
-        sys.exit(3)
+        console_log.error(f'Config file "{p_config}" doesn\'t exist.')
+        raise typer.Exit(code=3)
     if not p_config.is_file():
-        print(f"ERROR: config is not a file: {p_config}")
+        console_log.error(f'Config "{p_config}" is not a file.')
     tgt_dir = p_config.parent
     src_dir = DATA_DIR / project_type
     if not src_dir.exists() or not src_dir.is_dir():
-        print("ERROR")
-        sys.exit(1)
+        console_log.error(f'"{src_dir}" does not exist or is not a directory.')
+        raise typer.Exit(code=1)
     if not tgt_dir.exists() or not p_config.exists():
-        print("ERROR")
-        sys.exit(2)
+        console_log.error("Project directory or config file do not exist.")
+        raise typer.Exit(code=2)
     with open(src_dir / "manifest.toml", "rb") as fid:
         manifest = tomllib.load(fid)
     with open(p_config, "r") as fid:
         config_toml = fid.read()
-    all_files = core.list_all_files(tgt_dir)
-    config, is_ok = core.read_config(config_toml, manifest["parameters"], all_files)
-    if not is_ok:
-        print("[ERROR] error while processing config file")
-        sys.exit(1)
+    target_files = core.list_all_files(tgt_dir)
+    try:
+        config = core.read_config(config_toml, manifest["parameters"], target_files)
+    except (TypeError, RuntimeError) as err:
+        console_log.error("Error while processing config file.")
+        console_log.error(err)
+        raise typer.Exit(code=1)
     return {
         "p_config": p_config,
         "config": config,
         "tgt_dir": tgt_dir,
         "src_dir": src_dir,
         "manifest": manifest,
-        "all_files": all_files,
+        "all_files": target_files,
     }
 
 
 @app.command()
-def gen(config_path: str, project_type: str, init_submodules: bool = False):
+def gen(
+    config_path: Annotated[Path, typer.Argument(help="Fully qualified path of the forge.toml file.")],
+    project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP,
+    init_submodules: bool = False,
+) -> None:
     """
     (Re-)Generate project from template files.
     If initialize submodules is True, the config path must be within a git repo.
     Initializing submodules will set up the vendor directory.
     """
-    typer.echo(f"Generating files for {project_type} at {config_path}")
-    data = setup_dir(config_path, project_type)
-    result, is_ok = core.generate(
+    console_log.info(f"Generating files for {project_type} at {config_path}")
+    data = setup_dir(config_path, project_type.value)
+    result = core.generate(
         data["src_dir"],
         data["tgt_dir"],
         data["manifest"],
         data["config"],
         dry_run=False,
     )
-    if not is_ok:
-        print("[ERROR] error while processing... not all tasks completed successfully")
-    if init_submodules:
+    # if not is_ok:
+    #     console_log.error("Error while processing... not all tasks completed successfully.")
+    if init_submodules:  # TODO: check for cpp project
         cmds = core.setup_vendor(data["config"], data["p_config"].parent)
         is_ok = core.run_commands(cmds)
         if not is_ok:
-            print("[ERROR] error running commands...")
+            console_log.error("Error running commands...")
     for r in result:
-        print(f"- {r}")
+        console_log.info(f"- {r}", extra={"highlighter": None})
 
 
-@app.command()
-def init_with_config(config_path: str, project_type: str, git_init: bool = False):
+@app.command("init")
+def initialize_with_config(
+    project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
+    project_type: Annotated[str, typer.Argument()] = ProjectType.CPP.value,
+    git_init: bool = False,
+    force: bool = False,
+) -> None:
     """
-    Generate a directory and empty config file for the given project type.
+    Generate a directory and empty config file for the given project type. (Existing
+    configuation files will not be overwritten without the --force flag.)
     If git-init is true, also initialize a git repository.
     """
-    typer.echo(f"Generating config.toml for {project_type} at {config_path}")
-    p_config = Path(config_path).resolve()
+    p_config = Path(project_path).resolve()
     p_manifest = DATA_DIR / project_type / "manifest.toml"
     with open(p_manifest, "rb") as fid:
         manifest = tomllib.load(fid)
     config_str = core.create_config_toml(manifest)
-    p_config.parent.mkdir(parents=True, exist_ok=True)
-    with open(p_config, "w") as fid:
+    p_config.mkdir(parents=True, exist_ok=True)
+    configuration_file = p_config / "forge.toml"
+    if configuration_file.exists():
+        if not force:
+            console_log.info(
+                f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.', extra={"markup": True}
+            )
+            raise typer.Exit(1)
+    with open(configuration_file, "w") as fid:
         fid.write(config_str)
+        console_log.info(f"Generated {project_type} config file at {configuration_file}")
     if git_init:
         cmds = core.init_git_repo(p_config.parent)
         core.run_commands(cmds)
 
 
+@app.command("update")
+def update_config(
+    project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
+    project_type: Annotated[ProjectType, typer.Argument()] = ProjectType.CPP,
+) -> None: ...
+
+
 @app.command()
-def task_update_copyright(config_path: str, project_type: str, silent: bool = False):
+def task_update_copyright(config_path: Path, project_type: str, silent: bool = False) -> None:
     """
     Run a task to update copyright headers over all recognized files.
     """
-    typer.echo(f"Updating copyright header in files...")
+    typer.echo("Updating copyright header in files...")
     data = setup_dir(config_path, project_type)
     copy_data_by_file = core.gen_copyright(
         data["config"], data["manifest"]["task"]["copyright"]["copy"], data["all_files"]
@@ -125,7 +179,6 @@ def task_update_copyright(config_path: str, project_type: str, silent: bool = Fa
             with open(path, "w") as fid:
                 fid.write(new_content)
             if not silent:
-                print(f"... updated copyright for {file_path}")
-        else:
-            if not silent:
-                print(f"... copyright up to date for {file_path}")
+                console_log.info(f"... updated copyright for {file_path}")
+        elif not silent:
+            console_log.info(f"... copyright up to date for {file_path}")
