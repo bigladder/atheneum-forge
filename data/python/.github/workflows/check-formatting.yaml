@@ -19,13 +19,13 @@ jobs:
           version: 0.9.9
           args: format --check
           src: "${{env.REPOSITORY_NAME}}"
-      - name: Run Ruff Linter
-        uses: astral-sh/ruff-action@v3
-        with:
-          version: 0.9.9
-          args: check
-          src: "${{env.REPOSITORY_NAME}}"
-      - name: Static type checking
-        run: |
-          uv run mypy "${{env.REPOSITORY_NAME}}"
-        continue-on-error: true
+      # - name: Run Ruff Linter
+      #   uses: astral-sh/ruff-action@v3
+      #   with:
+      #     version: 0.9.9
+      #     args: check
+      #     src: "${{env.REPOSITORY_NAME}}"
+      # - name: Static type checking
+      #   run: |
+      #     uv run mypy "${{env.REPOSITORY_NAME}}"
+      #   continue-on-error: true

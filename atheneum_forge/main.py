@@ -3,10 +3,10 @@ Copyright (C) 2024 Big Ladder Software, LLC. See LICENSE.txt for license informa
 """
 
 import logging
-import tomllib
 from enum import Enum
 from pathlib import Path
 
+import tomllib
 import typer
 from rich.logging import RichHandler
 from typing_extensions import Annotated
