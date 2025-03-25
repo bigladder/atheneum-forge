@@ -1,8 +1,21 @@
 build/
-*.egg*/
-.doit.*
-.pytest_cache/
-.vscode/
-__pycache__/
 dist/
+*.egg*/
+
+.doit.*
+
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+__pycache__/
+
+.vscode/
+
 .venv/
+venv/
+
+*.bak
+*.bak/
+
+# TODO: mkdocs build files
+# TODO: sphinx build files

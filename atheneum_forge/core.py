@@ -4,12 +4,12 @@ import re
 import shutil
 import subprocess
 import sys
-import tomllib
 from datetime import datetime
 from pathlib import Path, PurePath
 from typing import Any, List
 
 import tomli_w
+import tomllib
 from jinja2 import Template
 
 log = logging.getLogger("rich")
@@ -69,8 +69,13 @@ def build_path(starting_dir: Path, path_str: str) -> dict:
     return {"path": result, "glob": None if glob == "" else glob}
 
 
-# ruff: noqa: PLR0912
-def process_single_file(from_path: Path, to_path: Path, config: dict | None, onetime: bool, dry_run: bool) -> str:
+def process_single_file(  # noqa: PLR0912
+    from_path: Path,
+    to_path: Path,
+    config: dict | None,
+    onetime: bool,
+    dry_run: bool,
+) -> str:
     """
     Process a single file from from_path to to_path.
     - from_path: path to a file to reference from
@@ -277,7 +282,7 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
     return "\n".join(all) + "\n" + postfix
 
 
-def merge_defaults_into_config(config: dict, defaults: dict, all_files: set | None = None) -> dict:
+def merge_defaults_into_config(config: dict, defaults: dict, all_files: set | None = None) -> dict:  # noqa: PLR0912
     """
     Collect all available configuration parameters and their correct values.
     """
