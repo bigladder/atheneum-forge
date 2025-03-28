@@ -173,7 +173,6 @@ def process_files(
             log.error(f"... 'glob' path: {to_path_with_glob['glob']}")
             sys.exit(1)
         to_path = to_path_with_glob["path"]
-        print(to_path)
         if to_path.is_dir():
             to_path.mkdir(parents=True, exist_ok=True)
         else:
@@ -188,7 +187,6 @@ def process_files(
                 to_name = to_path / f["oname"]
             else:
                 to_name = to_path / from_path.name
-            print(to_name)
             result = process_single_file(from_path, to_name, config, onetime, dry_run)
             status_list.append(result)
         else:
