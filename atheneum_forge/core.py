@@ -14,7 +14,7 @@ from jinja2 import Template
 
 log = logging.getLogger("rich")
 
-RECOGNIZED_CONFIG_KEYS = {"deps"}
+UNDEFAULTED_PARAMETERS = {"project_name", "deps"}
 RECOGNIZED_SRC_DIRS = {"src", "include", "test", "app"}
 DEFAULT_LINE_COMMENTS_BY_EXT = {
     "*.cpp": "// ",
@@ -28,21 +28,27 @@ DEFAULT_LINE_COMMENTS_BY_EXT = {
 
 
 def render(template: str, config: dict) -> str:
-    """
-    Render a template using the given data
-    - template: Jinja2 template to render
-    - config: dict(string, stringable), values to insert into template
-    RESULT: string, the rendered template
+    """Render a template using the given data
+
+    Args:
+        template (str): Jinja2 template to render
+        config (dict): values to insert into template
+
+    Returns:
+        str: the rendered template
     """
     t = Template(template)
     return t.render(config)
 
 
 def read_manifest(toml_str: str) -> dict:
-    """
-    Read a TOML manifest from a string.
-    - toml_str: the TOML string
-    RESULT: {
+    """Read a TOML manifest from a string.
+
+    Args:
+        toml_str (str):
+
+    Returns:
+        dict: {
         "static":[{"from": "path", "to": "path"},...],
         "template":[{"from": "path", "to": "path"},...],
     }
@@ -51,9 +57,7 @@ def read_manifest(toml_str: str) -> dict:
 
 
 def build_path(starting_dir: Path, path_str: str) -> dict:
-    """
-    Build a new path from a starting_dir and path_str.
-    """
+    """Build a new path from a starting_dir and path_str."""
     result = starting_dir
     is_glob = False
     globs = []
@@ -76,15 +80,17 @@ def process_single_file(  # noqa: PLR0912
     onetime: bool,
     dry_run: bool,
 ) -> str:
-    """
-    Process a single file from from_path to to_path.
-    - from_path: path to a file to reference from
-    - to_path: path to a file to generate/update
-    - config: dict of parameters or None. If a dict, treat from_path as template.
-    - onetime: bool, if True do not regenerate if to_path exists
-    - dry_run: bool, if True, do a dry run. Don't actually update/generate.
-    - result: a list of result strings indicating the tasks run (or dry runned).
-    RESULT: True if all successful, else False
+    """Process a single file from from_path to to_path.
+
+    Args:
+        from_path (Path): path to a file to reference from
+        to_path (Path): path to a file to generate/update
+        config (dict | None): dict of parameters or None. If a dict, treat from_path as template.
+        onetime (bool): if True do not regenerate if to_path exists
+        dry_run (bool): if True, do a dry run. Don't actually update/generate.
+
+    Returns:
+        str: One-line processing status of the file
     """
     prefix = None
     if onetime and to_path.exists():
@@ -93,6 +99,13 @@ def process_single_file(  # noqa: PLR0912
     if not dry_run:
         if not from_path.exists():
             prefix = "SKIPPED (no source file): "
+        elif from_path.is_dir():
+            if not to_path.exists():
+                # Only create directory; don't populate it
+                to_path.mkdir(parents=True)
+                prefix = "MAKE DIR          : "
+            else:
+                prefix = "UP-TO-DATE(dir)   : "
         elif config is None:
             if not to_path.exists() or not filecmp.cmp(from_path, to_path):
                 if not to_path.parent.exists():
@@ -100,7 +113,8 @@ def process_single_file(  # noqa: PLR0912
                 shutil.copyfile(from_path, to_path)
                 prefix = "COPY              : "
             else:
-                prefix = "UP-TO-DATE(copy)  : "
+                # TODO: Some files, such as .gitignore, will have up-to-date sections and updateable sections
+                prefix = "UP-TO-DATE(file)  : "
         else:
             template = None
             with open(from_path, "r") as fid:
@@ -128,47 +142,58 @@ def process_single_file(  # noqa: PLR0912
 
 
 def process_files(
-    src_dir: Path, tgt_dir: Path, file_paths: list, config: None | dict, dry_run: bool, status_list: List[str]
+    source_directory: Path,
+    target_directory: Path,
+    file_paths: list,
+    config: None | dict,
+    dry_run: bool,
+    status_list: List[str],
 ) -> None:
-    """
-    Process files from src directory to target directory.
-    - src_dir: the source directory
-    - tgt_dir: the target directory
-    - file_paths: [{"from": "path", "to": "path"},...]
-    - config: None or a dict, if a dict, try to render file as a template; else copy
-    - dry_run: bool. If true, treat as a dry-run
-    - result: [str], keeps a list of which actions were taken
-    RETURN: True if successful, False if error
+    """Collect project files and folders; process them through generation engine.
+
+    Args:
+        source_directory (Path):
+        tgt_dir (Path):
+        file_paths (list): [{"from": "path", "to": "path"},...]
+        config (None | dict): if a dict, try to render file as a template; else copy
+        dry_run (bool): If true, treat as a dry-run
+        status_list (List[str]): keeps a list of which actions were taken
     """
     for f in file_paths:
         onetime = f.get("onetime", False)
-        test_param = f.get("if", None)
-        if config is not None and test_param in config:
-            if not config[test_param]:
-                log.info(f"SKIPPING    : {f['from']}, skip flag is true")
-                continue
-        to_path_with_glob = build_path(tgt_dir, f["to"])
+        # test_param = f.get("if", None)
+        # if config is not None and test_param in config:
+        #     if not config[test_param]:
+        #         log.info(f"SKIPPING    : {f['from']}, skip flag is true")
+        #         continue
+        to_path_with_glob = build_path(target_directory, f["to"])
         if to_path_with_glob["glob"] is not None:
             log.error("Glob not allowed in 'to' path. Path must be directory or file.")
             log.error(f"... 'to' path  : {to_path_with_glob['path']}")
             log.error(f"... 'glob' path: {to_path_with_glob['glob']}")
             sys.exit(1)
         to_path = to_path_with_glob["path"]
+        print(to_path)
         if to_path.is_dir():
             to_path.mkdir(parents=True, exist_ok=True)
         else:
             to_path.parent.mkdir(parents=True, exist_ok=True)
-        from_path_with_glob = build_path(src_dir, f["from"])
+        from_path_with_glob = build_path(source_directory, f["from"])
+        from_path = from_path_with_glob["path"]
         if from_path_with_glob["glob"] is None:
-            from_path = from_path_with_glob["path"]
-            result = process_single_file(
-                from_path, to_path / (f.get("oname") if "oname" in f else from_path.name), config, onetime, dry_run
-            )
+            if from_path.is_dir():
+                # Directory-name syntax in the "from" field can only be resolved to a "to" path
+                to_name = to_path
+            elif "oname" in f:
+                to_name = to_path / f["oname"]
+            else:
+                to_name = to_path / from_path.name
+            print(to_name)
+            result = process_single_file(from_path, to_name, config, onetime, dry_run)
             status_list.append(result)
         else:
             if not to_path.exists():
                 to_path.mkdir(parents=True, exist_ok=True)
-            from_path = from_path_with_glob["path"]
             glob = from_path_with_glob["glob"]
             for fpath in from_path.glob(glob):
                 if fpath.is_dir():
@@ -178,14 +203,17 @@ def process_files(
 
 
 def generate(source: str, target: str, manifest: dict, config: dict, dry_run: bool) -> list:
-    """
-    Generate (or regenerate) the manifest files in repo_dir at target.
-    - source: path to repo directory
-    - target: path to target directory
-    - manifest: dict, see read_manifest for data format
-    - config: dict, the configuration of template parameters
-    - dry_run: bool, if True, doesn't actually do the actions
-    RETURN: array of str indicating what was done
+    """Generate (or regenerate) the manifest files in repo_dir at target.
+
+    Args:
+        source (str): path to repo directory
+        target (str): path to target directory
+        manifest (dict): see read_manifest for data format
+        config (dict): the configuration of template parameters
+        dry_run (bool): if True, doesn't actually do the actions
+
+    Returns:
+        list: array of str indicating what was done
     """
     src_dir = Path(source)
     tgt_dir = Path(target)
@@ -202,13 +230,19 @@ def generate(source: str, target: str, manifest: dict, config: dict, dry_run: bo
 
 
 def derive_default_parameter(defaults: dict, key: str, all_files: set | None = None) -> Any:
-    """
-    Derive default parameters, running any computations.
-    - defaults: dict(str, {"default": any}), the dictionary of default parameters
-    - key: str, the key to fetch
-    - all_files: set(str) | None, maps a relative dir path to files in that dir
+    """Derive default parameters, running any computations.
+
+    Args:
+        defaults (dict): the dictionary of default parameters
+        key (str): the key to fetch
+        all_files (set | None, optional): maps a relative dir path to files in that dir
         - e.g., {".": ["README.md"], "src": ["main.cpp"], "test": ["test.cpp"]}
-    RESULT: any, the processed default
+    Raises:
+        TypeError:
+        RuntimeError:
+
+    Returns:
+        Any: the processed default
     """
     if key not in defaults:
         return None
@@ -235,13 +269,11 @@ def derive_default_parameter(defaults: dict, key: str, all_files: set | None = N
     return d
 
 
-def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
-    """
-    Create config TOML data from the given manifest.
-    """
+def create_config_toml(manifest: dict, project_name: str, all_files: set | None = None) -> str:
+    """Create config TOML data from the given manifest."""
     params = manifest["parameters"] if "parameters" in manifest else {}
-    required = []
-    defaults = []
+    params["project_name"] = {type: "str", "required": True, "default": project_name}
+    configuration_entries = []
     for p in sorted(params.keys()):
         is_private = params[p].get("private", False)
         if is_private:
@@ -249,10 +281,12 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
         if "default" in params[p]:
             d = derive_default_parameter(params, p, all_files)
             value_str = tomli_w.dumps({p: d}).strip()
-            defaults.append(f"# {value_str}")
+            if params[p].get("required", False):
+                configuration_entries.append(f"{value_str}")
+            else:
+                configuration_entries.append(f"# {value_str}")
         else:
-            required.append(f"{p} = # <-- {params[p]['type']}")
-    all = required + defaults
+            configuration_entries.append(f"{p} = # <-- {params[p]['type']}")
     dependencies = manifest.get("deps", [])
     dep_strings = []
     if dependencies and dependencies[0]:
@@ -279,20 +313,18 @@ def create_config_toml(manifest: dict, all_files: set | None = None) -> str:
     """.strip()
     )
     postfix = "\n".join(dep_strings)
-    return "\n".join(all) + "\n" + postfix
+    return "\n".join(configuration_entries) + "\n" + postfix
 
 
 def merge_defaults_into_config(config: dict, defaults: dict, all_files: set | None = None) -> dict:  # noqa: PLR0912
-    """
-    Collect all available configuration parameters and their correct values.
-    """
+    """Collect all available configuration parameters and their correct values."""
     result = {}
     # For every attribute in the user-supplied configuration, check that the attribute is
     # 1. available in the manifest and
     # 2. of the type indicated by the manifest
     for p in config.keys():  # noqa: PLC0206
         if p not in defaults:
-            if p not in RECOGNIZED_CONFIG_KEYS:
+            if p not in UNDEFAULTED_PARAMETERS:
                 log.warn(f"Unrecognized key '{p}' in config")
             else:
                 ...
@@ -326,22 +358,48 @@ def merge_defaults_into_config(config: dict, defaults: dict, all_files: set | No
     return result
 
 
-def read_config(config_toml: str, parameters: dict, all_files: set | None = None) -> dict:
-    """
-    Read the config toml and mix in defaults from manifest's parameters section.
-    RETURN: config dict and flag: True if all processes executed OK, else False.
+def read_toml(input_file: Path) -> dict:
+    """Read and return a dictionary from toml file.
+
+    Args:
+        input_file (Path): Input .toml file path
+
+    Raises:
+        RuntimeError: Badly configured input file.
+
+    Returns:
+        dict: Key-value pairs extracted from toml format.
     """
     try:
-        config = tomllib.loads(config_toml)
+        with open(input_file, "rb") as fid:
+            output = tomllib.load(fid)
+            return output
     except tomllib.TOMLDecodeError as err:
         log.error("Incorrect configuration file detected. Please check for invalid key-value pairs.")
         raise RuntimeError(err)
+
+
+def read_config(config: dict, parameters: dict, all_files: set | None = None) -> dict:
+    """Mix defaults from manifest's parameters section into the configuration toml data.
+
+    Args:
+        config (dict):
+        parameters (dict):
+        all_files (set | None, optional):
+
+    Returns:
+        dict: _description_
+    """
     return merge_defaults_into_config(config, parameters, all_files)
 
 
 def list_all_files(dir_path: Path) -> set:
-    """
-    List all files relative to a dir_path using relative path strings.
+    """List all files relative to a dir_path using relative path strings.
+
+    Args:
+        dir_path (Path): Input path
+    Returns:
+        set: A set of relative paths in string form
     """
     result = set()
     for item in dir_path.glob("**/*"):
@@ -357,19 +415,22 @@ def list_all_files(dir_path: Path) -> set:
     return result
 
 
-def setup_vendor(config: dict, tgt_dir: Path, dry_run: bool = False) -> list:
-    """
-    Return the list of commands necessary to set up vendor directory.
-    - config: dict, must contain the key "deps" which is a list:
-        [{"name": "dep_name", "git_url": "", "git_checkout": "branch/sha/tag name"}, ...]
-    - tgt_dir: Path to directory where setup should occur. (root path)
-    - dry_run: bool, if True doesn't touch the file system.
-    RETURN: list of commands where a command is {"dir": Path, "cmds": list(str)}
+def setup_vendor(config: dict, target_directory: Path, dry_run: bool = False) -> list:
+    """Return the list of commands necessary to set up vendor directory.
+
+    Args:
+        config (dict): must contain the key "deps" which is a list:
+                       [{"name": "dep_name", "git_url": "", "git_checkout": "branch/sha/tag name"}, ...]
+        tgt_dir (Path): Path to directory where setup should occur. (root path)
+        dry_run (bool, optional): if True doesn't touch the file system.
+
+    Returns:
+        list: list of commands where a command is {"dir": Path, "cmds": list(str)}
     """
     cmds = []
     for dep in sorted(config.get("deps", []), key=lambda d: d["name"]):
         dep_name = dep["name"]
-        tgt_dep = tgt_dir / "vendor" / dep_name
+        tgt_dep = target_directory / "vendor" / dep_name
         if dry_run or not tgt_dep.exists():
             cmd = f"git submodule add {dep['git_url']} vendor/{dep_name}"
             cmds.append(cmd)
@@ -384,17 +445,16 @@ def setup_vendor(config: dict, tgt_dir: Path, dry_run: bool = False) -> list:
             cmds.append(cmd)
     if len(cmds) == 0:
         return []
-    return [{"dir": tgt_dir, "cmds": cmds}]
+    return [{"dir": target_directory, "cmds": cmds}]
 
 
-def init_git_repo(tgt_dir: Path | str) -> list:
+def init_git_repo(target_directory: Path | str) -> list:
     """
-    Return the list of commands required to initialize a git repo.
-    RETURN: list of commands. See setup_vendor for structure.
+    Return the list of commands required to initialize a git repo. See setup_vendor for structure.
     """
     return [
         {
-            "dir": Path(tgt_dir),
+            "dir": Path(target_directory),
             "cmds": [
                 "git init --initial-branch=main",
             ],
@@ -402,21 +462,20 @@ def init_git_repo(tgt_dir: Path | str) -> list:
     ]
 
 
-def run_commands(cmds: list) -> bool:
+def run_commands(commands: list) -> None:
     """
     Run a list of commands.
     A command is documented as for setup_vendor.
-    RETURN: True if all commands ran OK. Else false.
+
+    Raises:
+        CalledProcessError: The subprocess had a nonzero return code.
     """
-    for c in cmds:
+    for c in commands:
         for cmd in c["cmds"]:
             if not c["dir"].exists():
                 c["dir"].mkdir(parents=True)
             result = subprocess.run(cmd, cwd=c["dir"], shell=True, check=False)
-            if result.returncode != 0:
-                log.error(f"Error running '{cmd}'.")
-                return False
-    return True
+            result.check_returncode()
 
 
 def gen_copyright(config: dict, copy_template: str, all_files: set) -> dict:
