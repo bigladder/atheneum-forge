@@ -3,7 +3,9 @@ static = [
   {from=".gitignore", to=".", onetime=true},
   {from="cmake/*", to="cmake/."},
   {from=".github/*", to=".github/."},
-  {from=".github/workflows/build-and-test.yml", to=".github/workflows/."},
+  {from=".github/workflows/*", to=".github/workflows/."},
+  {from="include", to="include"},
+  {from="doc", to="doc"}
 ]
 template = [
   {from="CMakeLists.txt", to="."},
@@ -28,7 +30,7 @@ files_test = {type="str:glob", default="test/[a-zA-Z]*.cpp", private=true}
 headers_config = {type="str:glob", default="include/**/[a-zA-Z]*.*.in", private=true}
 headers_private = {type="str:glob", default="src/[a-zA-Z]*.h", private=true}
 headers_public = {type="str:glob", default="include/**/[a-zA-Z]*.h", private=true}
-project_name = {type="str"}
+project_type = {type="str", default="cpp", required=true}
 project_short_description = {type="str", default=""}
 start_year = {type="int:year", default="parameter:year"}
 use_app = {type="bool", default=false}

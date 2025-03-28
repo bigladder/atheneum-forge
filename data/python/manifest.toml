@@ -12,7 +12,7 @@ template = [
   {from="Taskfile.yml", to=".", onetime=true, if="use_taskfile"},
 ]
 [parameters]
-project_name = {type="str"}
+project_type = {type="str", default="python", required=true}
 project_short_description = {type="str", default=""}
 start_year = {type="int:year", default="parameter:year"}
 use_app = {type="bool", default=false}
