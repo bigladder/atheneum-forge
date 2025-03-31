@@ -181,11 +181,13 @@ def process_files(
         from_path = from_path_with_glob["path"]
         if from_path_with_glob["glob"] is None:
             if from_path.is_dir():
-                # Directory-name syntax in the "from" field can only be resolved to a "to" path
+                # Directory name (or no name) in the "from" field is unused; "to" path will be resolved/created
                 to_name = to_path
             elif "oname" in f:
+                # Single file output, new name
                 to_name = to_path / f["oname"]
             else:
+                # Single file output, same name
                 to_name = to_path / from_path.name
             result = process_single_file(from_path, to_name, config, onetime, dry_run)
             status_list.append(result)
@@ -200,7 +202,7 @@ def process_files(
                 status_list.append(result)
 
 
-def generate(source: str, target: str, manifest: dict, config: dict, dry_run: bool) -> list:
+def generate(project_name: str, source: str, target: str, manifest: dict, config: dict, dry_run: bool) -> list:
     """Generate (or regenerate) the manifest files in repo_dir at target.
 
     Args:
@@ -222,6 +224,9 @@ def generate(source: str, target: str, manifest: dict, config: dict, dry_run: bo
             return result
         if not tgt_dir.exists():
             tgt_dir.mkdir(parents=True, exist_ok=True)
+    process_files(
+        src_dir, tgt_dir, [{"from": "", "to": project_name}], config=None, dry_run=dry_run, status_list=result
+    )
     process_files(src_dir, tgt_dir, manifest["static"], config=None, dry_run=dry_run, status_list=result)
     process_files(src_dir, tgt_dir, manifest["template"], config=config, dry_run=dry_run, status_list=result)
     return result
@@ -325,7 +330,7 @@ def merge_defaults_into_config(config: dict, defaults: dict, all_files: set | No
             if p not in UNDEFAULTED_PARAMETERS:
                 log.warn(f"Unrecognized key '{p}' in config")
             else:
-                ...
+                result[p] = config[p]
         else:
             data_type = defaults[p].get("type", None)
             v = config[p]
@@ -460,6 +465,31 @@ def init_git_repo(target_directory: Path | str) -> list:
     ]
 
 
+def init_pre_commit(target_directory: Path | str, type: str) -> list:
+    """
+    Return the list of commands required to initialize the pre-commit tool.
+    """
+    if type == "cpp":
+        return [
+            {
+                "dir": Path(target_directory),
+                "cmds": [
+                    "uvx pre-commit install",
+                ],
+            }
+        ]
+    elif type == "python":
+        return [
+            {
+                "dir": Path(target_directory),
+                "cmds": [
+                    "uv run pre-commit install",  # uv run syncs the venv first, so pre-commit gets installed
+                ],
+            }
+        ]
+    return []
+
+
 def run_commands(commands: list) -> None:
     """
     Run a list of commands.
@@ -472,8 +502,9 @@ def run_commands(commands: list) -> None:
         for cmd in c["cmds"]:
             if not c["dir"].exists():
                 c["dir"].mkdir(parents=True)
-            result = subprocess.run(cmd, cwd=c["dir"], shell=True, check=False)
+            result = subprocess.run(cmd, cwd=c["dir"], shell=True, check=False, capture_output=True, encoding="utf8")
             result.check_returncode()
+            log.info(result.stdout)
 
 
 def gen_copyright(config: dict, copy_template: str, all_files: set) -> dict:

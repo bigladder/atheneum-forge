@@ -9,17 +9,41 @@ from subprocess import CalledProcessError
 
 import tomllib
 import typer
+from rich.console import Console
+from rich.highlighter import RegexHighlighter
 from rich.logging import RichHandler
+from rich.theme import Theme
 from typing_extensions import Annotated
 
-# from rich.highlighter import RegexHighlighter
-# from rich.theme import Theme
 from atheneum_forge import core
 
-logging.basicConfig(level=logging.INFO, format="%(message)s", handlers=[RichHandler()])
 
+class FileStatusHighlighter(RegexHighlighter):
+    """Apply style to generator and renderer messages."""
+
+    base_style = "example."
+    # highlights = [r"(?P<status>([A-Z]*)(-?[A-Z]*)*)"]
+    highlights = [r"(?P<status_copy>COPY)", r"(?P<status_render>RENDER)", r"(?P<status_skipped>SKIPPED)"]
+
+
+console = Console(
+    theme=Theme(
+        {
+            "example.status_copy": "spring_green3",
+            "example.status_render": "dark_magenta",
+            "example.status_skipped": "grey53",
+        }
+    )
+)
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+    handlers=[RichHandler(show_time=False, highlighter=FileStatusHighlighter(), console=console)],
+)
 
 console_log = logging.getLogger("rich")
+
 # Optional file logger:
 # formatter = logging.Formatter('%(asctime)s  [%(levelname)s]   %(message)s')
 # file_handler = FileHandler("atheneum_forge_log.txt", mode='w')
@@ -31,15 +55,6 @@ app = typer.Typer(add_completion=False, pretty_exceptions_enable=False)
 THIS_DIR = Path(__file__).resolve().parent
 DATA_DIR = (THIS_DIR / ".." / "data").resolve()
 FORGE_CONFIG = "forge.toml"
-
-# class FileStatusHighlighter(RegexHighlighter):
-#     """Apply style to generator and renderer messages."""
-
-#     base_style = "example."
-#     highlights = [r"(?P<status>([A-Z]*-?)])*[A-Z]"]
-
-
-# theme = Theme({"example.status": "bold magenta"})
 
 
 class ProjectType(str, Enum):
@@ -72,7 +87,7 @@ def setup_dir(config_path: Path) -> dict:
     manifest = core.read_toml(src_dir / "manifest.toml")
     target_files = core.list_all_files(tgt_dir)
     try:
-        config = core.read_config(config_toml, manifest["parameters"], target_files)
+        config = core.merge_defaults_into_config(config_toml, manifest["parameters"], target_files)
     except (TypeError, RuntimeError) as err:
         console_log.error("Error while processing config file.")
         console_log.error(err)
@@ -84,7 +99,6 @@ def setup_dir(config_path: Path) -> dict:
         "src_dir": src_dir,
         "manifest": manifest,
         "all_files": target_files,
-        "project_type": project_type,
     }
 
 
@@ -99,8 +113,9 @@ def generate(
     Initializing submodules will set up the vendor directory.
     """
     data = setup_dir(config_path / FORGE_CONFIG)
-    console_log.info(f"Generating files for {data['project_type']} at {config_path}")
+    console_log.info(f"Generating files for {data['config']['project_type']} at {config_path}")
     result = core.generate(
+        data["config"]["project_name"],
         data["src_dir"],
         data["tgt_dir"],
         data["manifest"],
@@ -114,7 +129,9 @@ def generate(
         except CalledProcessError as err:
             console_log.error(err)
     for r in result:
-        console_log.info(f"- {r}", extra={"highlighter": None})
+        console_log.info(
+            f"- {r}",
+        )
 
 
 @app.command("init")
@@ -147,11 +164,16 @@ def initialize_with_config(
     with open(configuration_file, "w") as fid:
         fid.write(config_str)
         console_log.info(f"Generated {type.value} config file at {configuration_file}")
-    if git_init:
-        cmds = core.init_git_repo(p_config.parent)
-        core.run_commands(cmds)
     if autogen:
         generate(p_config)
+    if git_init:
+        if not autogen:
+            # In a python project the pre-commit tool is only installed once pyproject.toml is read,
+            # so it can't be called without file generation
+            console_log.info("Git repository not initialized ([red]--no-git-init[/] applied).", extra={"markup": True})
+        else:
+            cmds = core.init_git_repo(p_config) + core.init_pre_commit(p_config, type.value)
+            core.run_commands(cmds)
 
 
 @app.command()

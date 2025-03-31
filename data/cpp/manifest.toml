@@ -4,8 +4,8 @@ static = [
   {from="cmake/*", to="cmake/."},
   {from=".github/*", to=".github/."},
   {from=".github/workflows/*", to=".github/workflows/."},
-  {from="include", to="include"},
-  {from="doc", to="doc"}
+  {from="", to="include"},
+  {from="", to="doc"}
 ]
 template = [
   {from="CMakeLists.txt", to="."},
