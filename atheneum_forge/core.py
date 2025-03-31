@@ -224,9 +224,10 @@ def generate(project_name: str, source: str, target: str, manifest: dict, config
             return result
         if not tgt_dir.exists():
             tgt_dir.mkdir(parents=True, exist_ok=True)
-    process_files(
-        src_dir, tgt_dir, [{"from": "", "to": project_name}], config=None, dry_run=dry_run, status_list=result
-    )
+    # TODO: project-type specific generation steps
+    # process_files(
+    #     src_dir, tgt_dir, [{"from": "", "to": project_name}], config=None, dry_run=dry_run, status_list=result
+    # )
     process_files(src_dir, tgt_dir, manifest["static"], config=None, dry_run=dry_run, status_list=result)
     process_files(src_dir, tgt_dir, manifest["template"], config=config, dry_run=dry_run, status_list=result)
     return result
