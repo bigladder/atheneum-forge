@@ -139,9 +139,9 @@ def initialize_with_config(
     project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
     project_name: Annotated[str, typer.Argument(help="Name of the project.")],
     type: ProjectType = ProjectType.cpp,
-    git_init: bool = True,
-    force: bool = False,
-    autogen: bool = True,
+    git_init: Annotated[bool, typer.Option(help="Initialize git repository in project directory.")] = True,
+    force: Annotated[bool, typer.Option(help="Overwrite project configuration file.")] = False,
+    autogen: Annotated[bool, typer.Option(help="Automatically generate project files alongside configuration.")] = True,
 ) -> None:
     """
     Generate a directory and empty config file for the given project type. (Existing
