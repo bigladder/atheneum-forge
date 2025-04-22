@@ -1,6 +1,8 @@
 from datetime import datetime
 from pathlib import Path, PurePath
 
+import tomllib
+
 import atheneum_forge.core as af
 
 
@@ -58,9 +60,8 @@ template = [
     config = {
         "project_name": "Athenium",
     }
-    results, is_ok = af.generate(repo_dir, target, manifest, config, dry_run=True)
-    assert is_ok == True
-    assert len(results) == 3
+    results = af.generate("Athenium", repo_dir, target, manifest, config, dry_run=True)
+    assert len(results) == 3  # noqa: PLR2004
 
 
 def test_create_config():
@@ -83,15 +84,15 @@ version_patch = {type="int:>=0", default=0}
 use_app = {type="bool", default=false}
     """
     data = af.read_manifest(toml_str)
-    actual = af.create_config_toml(data)
+    actual = af.create_config_toml(data, "Athenium")
     expected = """
-project_name = # <-- str
-# start_year = 2024
+project_name = "Athenium"
+# start_year = 2025
 # use_app = false
 # version_major = 0
 # version_minor = 1
 # version_patch = 0
-# year = 2024
+# year = 2025
 # [[deps]]
 # name = "" # <- name of the dependency; vendor/<name>
 # git_url = "" # <- add the url used to checkout this repository
@@ -123,8 +124,7 @@ start_year = 2022
 # version_patch = 0
 # year = 2024
     """
-    actual, is_ok = af.read_config(config_toml, manifest["parameters"])
-    assert is_ok == True
+    actual = af.read_config(tomllib.loads(config_toml), manifest["parameters"])
     expected = {
         "project_name": "bob",
         "start_year": 2022,
@@ -199,8 +199,7 @@ def test_merge_defaults_into_config():
             "default": False,
         },
     }
-    actual, is_ok = af.merge_defaults_into_config(config, defaults)
-    assert is_ok == True
+    actual = af.merge_defaults_into_config(config, defaults)
     expected = {
         "project_name": "bob",
         "start_year": 2022,
@@ -278,10 +277,10 @@ def test_init_git_repo():
 
 def test_setup_vendor():
     dir = "/Users/frodo-baggins/projects/test-project/"
-    tgt_dir = PurePath(dir)
-    config = {}
+    tgt_dir = Path(dir)
+    config: dict = {}
     actual = af.setup_vendor(config, tgt_dir, dry_run=True)
-    expected = []
+    expected: list = []
     assert actual == expected
 
     config = {
@@ -320,14 +319,16 @@ def test_setup_vendor():
     assert len(actual) == len(expected)
     for idx in range(len(expected)):
         assert actual[idx]["dir"] == expected[idx]["dir"]
-        assert len(actual[idx]["cmds"]) == len(expected[idx]["cmds"])
-        for ca, ce in zip(actual[idx]["cmds"], expected[idx]["cmds"]):
+        assert len(actual[idx]["cmds"]) == len(expected[idx]["cmds"])  # type: ignore
+        for ca, ce in zip(actual[idx]["cmds"], expected[idx]["cmds"]):  # type: ignore
             assert ca == ce
     assert actual == expected
 
 
 def test_gen_copyright():
-    copy_template = "COPYRIGHT (C) {% if start_year is defined and start_year != year %}{{ start_year }}-{% endif %}{{ year }} US"
+    copy_template = (
+        "COPYRIGHT (C) {% if start_year is defined and start_year != year %}{{ start_year }}-{% endif %}{{ year }} US"
+    )
     year = datetime.now().year
     start_year = 2020
     params = {"year": year, "start_year": start_year}
@@ -429,3 +430,77 @@ int main(void) {
     """.strip()
     actual = af.update_copyright(file_content, copy_lines)
     assert actual == expected
+
+
+def test_update_dictionary():
+    source_dict = {
+        "project": {"name": "python_generator", "readme": "README.md", "dependencies": []},
+        "dependency-groups": {
+            "dev": [
+                "doit",
+                "mypy",
+                "pre-commit",
+                "pytest",
+                "ruff",
+            ]
+        },
+        "tool.mypy": {"disallow_incomplete_defs": "True", "no_implicit_optional": "True", "check_untyped_defs": "True"},
+        "[tool.mypy.overrides]": {"module": "lattice.*", "disable_error_code": ["annotation-unchecked", "import"]},
+    }
+    destination_dict = {
+        "project": {"name": "python_generator", "readme": "README.md", "dependencies": []},
+        "dependency-groups": {
+            "dev": [
+                "black",
+                "doit",
+                "pre-commit",
+                "pytest",
+                "ruff",
+            ]
+        },
+        "tool.ruff": {"line-length": 120},
+    }
+    merged_dict = {
+        "project": {"name": "python_generator", "readme": "README.md", "dependencies": []},
+        "dependency-groups": {
+            "dev": [  # This list is sorted for the purposes of testing (FUT sorts lists)
+                "black",
+                "doit",
+                "mypy",
+                "pre-commit",
+                "pytest",
+                "ruff",
+            ]
+        },
+        "tool.ruff": {"line-length": 120},
+        "tool.mypy": {"disallow_incomplete_defs": "True", "no_implicit_optional": "True", "check_untyped_defs": "True"},
+        "[tool.mypy.overrides]": {"module": "lattice.*", "disable_error_code": ["annotation-unchecked", "import"]},
+    }
+
+    af._update_destination_dict(source_dict, destination_dict)
+    assert destination_dict == merged_dict
+
+
+def test_update_text():
+    source_txt_lines = [
+        "Lorem ipsum dolor",
+        "sed do eiusmod tempor ",
+        "incididunt ut labore et ",
+        "dolore magna aliqua.",
+    ]
+    destination_txt_lines = [
+        "Lorem ipsum dolor",
+        "sit amet, consectetur adipiscing elit,",
+        "sed do eiusmod tempor ",
+        "dolore magna aliqua.",
+    ]
+    af._update_destination_text_list(source_txt_lines, destination_txt_lines)
+    merged_text = [
+        "Lorem ipsum dolor",
+        "sit amet, consectetur adipiscing elit,",
+        "sed do eiusmod tempor ",
+        "incididunt ut labore et ",
+        "dolore magna aliqua.",
+    ]
+
+    assert destination_txt_lines == merged_text

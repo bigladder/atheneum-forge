@@ -1,10 +1,12 @@
 import filecmp
+import importlib
 import logging
 import re
 import shutil
 import subprocess
 import sys
 from datetime import datetime
+from io import StringIO
 from pathlib import Path, PurePath
 from typing import Any, List
 
@@ -107,30 +109,30 @@ def process_single_file(  # noqa: PLR0912
             else:
                 prefix = "UP-TO-DATE(dir)   : "
         elif config is None:
-            if not to_path.exists() or not filecmp.cmp(from_path, to_path):
-                if not to_path.parent.exists():
+            if not to_path.exists() or not filecmp.cmp(from_path, to_path):  # to-path not yet generated, or OUT OF DATE
+                if not to_path.parent.exists():  # Why this possibility?
                     to_path.parent.mkdir(parents=True)
-                shutil.copyfile(from_path, to_path)
+                shutil.copyfile(from_path, to_path)  # This is always a wholesale COPY, not update/merge.
                 prefix = "COPY              : "
             else:
                 # TODO: Some files, such as .gitignore, will have up-to-date sections and updateable sections
                 prefix = "UP-TO-DATE(file)  : "
-        else:
+        else:  # If you give this function a config, it's because it contains template params?
             template = None
             with open(from_path, "r") as fid:
                 template = fid.read()
-            out = render(template, config)
-            if not to_path.parent.exists():
+            out = render(template, config)  # Render template using config
+            if not to_path.parent.exists():  # Why this again?
                 to_path.parent.mkdir(parents=True, exist_ok=True)
             if to_path.exists():
                 with open(to_path, "r") as existing:
                     if existing.read() == out:
                         prefix = "UP-TO-DATE        : "
-                    else:
-                        with open(to_path, "w") as fid:
+                    else:  # OUT OF DATE
+                        with open(to_path, "w") as fid:  # Overwrite, no update
                             fid.write(out)
                         prefix = "RENDER            : "
-            else:
+            else:  # File didn't exist, create (render)
                 with open(to_path, "w") as fid:
                     fid.write(out)
                 prefix = "RENDER            : "
@@ -320,20 +322,20 @@ def create_config_toml(manifest: dict, project_name: str, all_files: set | None 
     return "\n".join(configuration_entries) + "\n" + postfix
 
 
-def merge_defaults_into_config(config: dict, defaults: dict, all_files: set | None = None) -> dict:  # noqa: PLR0912
+def merge_defaults_into_config(config: dict, manifest_defaults: dict, all_files: set | None = None) -> dict:  # noqa: PLR0912
     """Collect all available configuration parameters and their correct values."""
     result = {}
     # For every attribute in the user-supplied configuration, check that the attribute is
     # 1. available in the manifest and
     # 2. of the type indicated by the manifest
     for p in config.keys():  # noqa: PLC0206
-        if p not in defaults:
+        if p not in manifest_defaults:
             if p not in UNDEFAULTED_PARAMETERS:
                 log.warn(f"Unrecognized key '{p}' in config")
             else:
                 result[p] = config[p]
         else:
-            data_type = defaults[p].get("type", None)
+            data_type = manifest_defaults[p].get("type", None)
             v = config[p]
             result[p] = v
             if isinstance(data_type, str):
@@ -349,16 +351,16 @@ def merge_defaults_into_config(config: dict, defaults: dict, all_files: set | No
                 if data_type.startswith("enum"):
                     if not isinstance(v, str):
                         raise TypeError(type_error)
-                    options = defaults[p].get("options", [])
+                    options = manifest_defaults[p].get("options", [])
                     if v not in options:
                         raise TypeError("Enum error; {v} not in {options}")
     # For every attribute in the manifest, if it isn't called out in the user-supplied
     # config, populate its value with a correct default.
-    for k, v in defaults.items():
+    for k, v in manifest_defaults.items():
         if k not in config:
             if "default" not in v:
                 raise TypeError(f"Missing required config parameter '{p}'")
-            result[k] = derive_default_parameter(defaults, k, all_files)
+            result[k] = derive_default_parameter(manifest_defaults, k, all_files)
     return result
 
 
@@ -558,3 +560,92 @@ def update_copyright(file_content: str, copy_lines: list) -> str:
     else:
         new_lines.extend(file_lines)
     return "\n".join(new_lines)
+
+
+def dict_merge(source_file: Path, destination_file: Path) -> StringIO:
+    """
+    Add keys and subdictionaries from source to destination if destination doesn't contain those
+    keys. Otherwise, leave values alone.
+    """
+    source_dict, extension = load_dict(source_file)
+    destination_dict, _ = load_dict(destination_file)
+    _update_destination_dict(source_dict, destination_dict)
+    return dump_str(extension, destination_dict)
+
+
+def _update_destination_dict(source: dict, destination: dict) -> None:
+    if not source == destination:
+        if isinstance(source, dict) and isinstance(destination, dict):
+            replacement_keys = sorted(list(source.keys()))
+            existing_keys = sorted(list(destination.keys()))
+            for k in replacement_keys:
+                if k not in existing_keys:
+                    destination[k] = source[k]  # If the key doesn't exist, insert the subdict associated with the key
+                elif isinstance(source[k], list) and isinstance(destination[k], list):
+                    destination[k] = sorted(list(set(destination[k] + source[k])))
+                elif isinstance(source[k], str) and isinstance(destination[k], str):
+                    pass  # TODO: Leave strings alone, assuming generated project has ground truth?
+                else:
+                    # Repeat comparison one level down until the values are no longer dictionaries
+                    _update_destination_dict(source[k], destination[k])
+
+
+def text_merge(source_file: Path, destination_file: Path) -> StringIO:
+    """
+    Compare two text files line-by-line. Leave all lines in the existing file that do not
+    appear in the replacement, but add lines from the replacement that do not appear in the
+    existing.
+    """
+    if filecmp.cmp(destination_file, source_file):
+        return StringIO()
+    with open(destination_file, "r") as existing:
+        with open(source_file, "r") as replacement:
+            existing_lines = existing.readlines()
+            replacement_lines = replacement.readlines()
+            _update_destination_text_list(replacement_lines, existing_lines)
+    with StringIO() as output:
+        output.writelines(existing_lines)
+        return output
+
+
+def _update_destination_text_list(replacement_lines, existing_lines):
+    insert_index = 0
+    for line_index, line in enumerate(replacement_lines):
+        if line not in existing_lines:
+            existing_lines.insert(insert_index, line)
+            insert_index += 1
+        else:
+            insert_index = existing_lines.index(line) + 1
+
+
+def load_dict(source_file: Path) -> tuple[dict, str]:
+    match source_file.suffix:
+        case "json":
+            importlib.import_module("json")
+            with open(source_file, "r", encoding="utf-8") as input_file:
+                return json.load(input_file), "json"  # type: ignore # noqa: F821
+        case "yaml" | "yml":
+            importlib.import_module("yaml")
+            with open(source_file, "r", encoding="utf-8") as input_file:
+                return yaml.load(input_file, Loader=yaml.CLoader), "yaml"  # type: ignore # noqa: F821
+        case "toml":
+            importlib.import_module("toml")
+            with open(source_file, "r", encoding="utf-8") as input_file:
+                return toml.load(input_file), "toml"  # type: ignore # noqa: F821
+        case _:
+            return {}, ""
+
+
+def dump_str(extension: str, data: dict) -> StringIO:
+    match extension:
+        case "json":
+            importlib.import_module("json")
+            return StringIO(json.dumps(data))  # type: ignore # noqa: F821
+        case "yaml" | "yml":
+            importlib.import_module("yaml")
+            return StringIO(yaml.dump(data, default_flow_style=False, sort_keys=False))  # type: ignore # noqa: F821
+        case "toml":
+            importlib.import_module("toml")
+            return StringIO(toml.dump(data))  # type: ignore # noqa: F821
+        case _:
+            return StringIO("")
