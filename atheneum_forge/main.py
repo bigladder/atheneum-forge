@@ -58,6 +58,7 @@ FORGE_CONFIG = "forge.toml"
 
 
 class ProjectType(str, Enum):
+    none = "none"
     cpp = "cpp"
     python = "python"
 
@@ -138,7 +139,7 @@ def generate(
 def initialize_with_config(
     project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
     project_name: Annotated[str, typer.Argument(help="Name of the project.")],
-    type: ProjectType = ProjectType.cpp,
+    type: ProjectType = ProjectType.none,
     git_init: Annotated[bool, typer.Option(help="Initialize git repository in project directory.")] = True,
     force: Annotated[bool, typer.Option(help="Overwrite project configuration file.")] = False,
     autogen: Annotated[bool, typer.Option(help="Automatically generate project files alongside configuration.")] = True,
@@ -148,6 +149,12 @@ def initialize_with_config(
     configuation files will not be overwritten without the --force flag.)
     If git-init is true, also initialize a git repository.
     """
+    if type == ProjectType.none:
+        # We'd like 'type' to be specified as an optional argument, but a valid default could have
+        # unintended consequences.
+        console_log.info("Please specify a valid type (use [red]--help[/red] for options).")
+        raise typer.Exit(code=1)
+
     p_config = Path(project_path).resolve()
     p_manifest = DATA_DIR / type.value / "manifest.toml"
     with open(p_manifest, "rb") as fid:
