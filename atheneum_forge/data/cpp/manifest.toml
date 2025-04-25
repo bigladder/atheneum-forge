@@ -9,7 +9,7 @@ static = [
 ]
 template = [
   {from="CMakeLists.txt", to="."},
-  {from="LICENSE.txt", to="."},
+  {from="LICENSE.txt", to=".", onetime=true},
   {from="README.md", to=".", onetime=true},
   {from="src/CMakeLists.txt", to="src/."},
   {from="vendor/CMakeLists.txt", to="vendor/."},

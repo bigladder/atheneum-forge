@@ -6,7 +6,7 @@ static = [
   {from="uv.lock.gen", to=".", oname="uv.lock"},
 ]
 template = [
-  {from="LICENSE.txt", to="."},
+  {from="LICENSE.txt", to=".", onetime=true},
   {from="README.md", to=".", onetime=true},
   {from="Dockerfile.format", to="."},
   {from="Taskfile.yml", to=".", onetime=true, if="use_taskfile"},

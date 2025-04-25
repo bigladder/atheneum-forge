@@ -53,7 +53,7 @@ console_log = logging.getLogger("rich")
 app = typer.Typer(add_completion=False, pretty_exceptions_enable=False)
 
 THIS_DIR = Path(__file__).resolve().parent
-DATA_DIR = (THIS_DIR / ".." / "data").resolve()
+DATA_DIR = (THIS_DIR / "data").resolve()
 FORGE_CONFIG = "forge.toml"
 
 
