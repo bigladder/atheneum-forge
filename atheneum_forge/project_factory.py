@@ -1,38 +1,99 @@
+import filecmp
 import logging
+import shutil
 from abc import ABC, abstractmethod
+from enum import Enum
 from pathlib import Path
+from subprocess import CalledProcessError
 
-from . import core
-from .main import DATA_DIR, FORGE_CONFIG
+from . import core, update
+
+THIS_DIR = Path(__file__).resolve().parent
+DATA_DIR = (THIS_DIR / "data").resolve()
+FORGE_CONFIG = "forge.toml"
+
 
 console_log = logging.getLogger("rich")
 
 
+class ProjectType(str, Enum):
+    none = "none"
+    cpp = "cpp"
+    python = "python"
+
+
 class GeneratedProject(ABC):
-    def __init__(self, project_path: Path, project_name: str):
+    """_summary_
+
+    Args:
+        ABC (_type_): _description_
+
+    Raises:
+        RuntimeError: _description_
+        FileNotFoundError: _description_
+        FileNotFoundError: _description_
+        FileNotFoundError: _description_
+        RuntimeError: _description_
+    """
+
+    @staticmethod
+    def get_project_type(project_path: Path) -> ProjectType:
+        try:
+            config_toml = core.read_toml(project_path / FORGE_CONFIG)
+        except FileNotFoundError:
+            return ProjectType.none
+        project_type = config_toml["project_type"]
+        for type in ProjectType:
+            if type.value == project_type:
+                return type
+        return ProjectType.none
+
+    @property
+    @abstractmethod
+    def source_data_dir(self) -> Path:
+        """The source data has varied values, but common usage"""
+        pass
+
+    @source_data_dir.setter
+    def source_data_dir(self, source_path: Path) -> None:
+        self.source_data_dir = source_path
+
+    def __init__(self, project_path: Path, project_name: str = "", force: bool = False):
         """Set up project locations and data dictionaries"""
         self.target_dir = Path(project_path).resolve()
         self.target_dir.mkdir(parents=True, exist_ok=True)
 
-        path_manifest = self.source_data_dir / "manifest.toml"  # type: ignore # Because this is an ABC, we control when __init__ is called.
+        path_manifest = self.source_data_dir / "manifest.toml"
         self.manifest = core.read_toml(path_manifest)
 
         configuration_file = self.target_dir / FORGE_CONFIG
-        if not configuration_file.exists():
+
+        if not project_name:  # Assume configuration toml exists, find name there
+            if not configuration_file.exists():
+                raise FileNotFoundError(
+                    f"No project name given and no existing configuration exists at path {project_path}"
+                )
+            else:
+                self.configuration = core.read_toml(configuration_file)
+        elif not configuration_file.exists() or force:  # Create or overwrite existing configuration
             config_str = core.create_config_toml(self.manifest, project_name)
             with open(configuration_file, "w") as fid:
                 fid.write(config_str)
 
-        self.target_files: set[Path] = core.list_all_files(self.target_dir)
-        try:
-            self.configuration = core.merge_defaults_into_config(
-                core.read_toml(configuration_file), self.manifest["parameters"], self.target_files
-            )
-        except (TypeError, RuntimeError):
-            raise RuntimeError("Error while processing config file.")
+            self.target_files: set[Path] = core.list_files_in(self.target_dir)
+            try:
+                # Read the created file back into a member dictionary
+                self.configuration = core.merge_defaults_into_config(
+                    core.read_toml(configuration_file), self.manifest["template-parameters"], self.target_files
+                )
+            except (TypeError, RuntimeError, FileNotFoundError):
+                raise RuntimeError("Error while processing config file.")
+        else:
+            console_log.info(f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.')
+            raise RuntimeError()
 
-    def check_directories(self, project_path: Path) -> None:
-        """_summary_
+    def _check_directories(self, project_path: Path) -> None:
+        """Ensure that the target (project) directory and config file exist, then collect configuration information.
 
         Args:
             config_path (Path): _description_
@@ -54,16 +115,127 @@ class GeneratedProject(ABC):
         if not configuration_file.is_file():
             raise FileNotFoundError(f'Config "{configuration_file}" is not a file.')
 
-        self.target_files = core.list_all_files(self.target_dir)
+        # self.target_files = core.list_all_files(self.target_dir)
+        # try:
+        #     self.configuration = core.merge_defaults_into_config(
+        #         core.read_toml(configuration_file), self.manifest["parameters"], self.target_files
+        #     )
+        # except (TypeError, RuntimeError):
+        #     raise RuntimeError("Error while processing config file.")
+
+    def _process_single_file(  # noqa: PLR0912
+        self,
+        from_path: Path,
+        to_path: Path,
+        strategy: str,
+        config: dict | None,
+        onetime: bool,
+        dry_run: bool,
+    ) -> str:
+        """Process a single file from from_path to to_path: copy, update, render, or skip.
+
+        Args:
+            from_path (Path): path to a file to reference from
+            to_path (Path): path to a file to generate/update
+            config (dict | None): dict of parameters or None. If a dict, treat from_path as template.
+            onetime (bool): if True do not regenerate if to_path exists
+            dry_run (bool): if True, do a dry run. Don't actually update/generate.
+
+        Returns:
+            str: One-line processing status of the file
+        """
+        prefix = None
+        if onetime and to_path.exists():
+            prefix = "SKIPPED (one-time): "
+            return f"{prefix}{from_path} => {to_path}"
+        if not dry_run:
+            if not from_path.exists():
+                prefix = "SKIPPED (no source file): "
+            elif from_path.is_dir():
+                if not to_path.exists():
+                    # Only create directory; don't populate it
+                    to_path.mkdir(parents=True)
+                    prefix = "MAKE DIR          : "
+                else:
+                    prefix = "UP-TO-DATE(dir)   : "
+            elif config is None:
+                if not to_path.exists():
+                    if not to_path.parent.exists():
+                        to_path.parent.mkdir(parents=True)
+                    shutil.copyfile(from_path, to_path)  # This is always a wholesale COPY, not update/merge.
+                    prefix = "COPY              : "
+                elif not filecmp.cmp(from_path, to_path):  # OUT OF DATE
+                    update.write_precursors_and_updated_file(strategy, from_path, to_path)
+                    prefix = "UPDATE            : "
+                else:
+                    prefix = "UP-TO-DATE(file)  : "
+            else:  # If you give this function a config, it's because it contains template params
+                template = None
+                with open(from_path, "r") as fid:
+                    template = fid.read()
+                out = core.render(template, config)  # Render template using config
+                if not to_path.parent.exists():
+                    to_path.parent.mkdir(parents=True, exist_ok=True)
+                if to_path.exists():
+                    with open(to_path, "r") as existing:
+                        if existing.read() == out:
+                            prefix = "UP-TO-DATE        : "
+                        else:  # OUT OF DATE
+                            update.write_precursors_and_updated_file(strategy, from_path, to_path, out)
+                            prefix = "UPDATE            : "
+                else:  # File didn't exist, create (render)
+                    with open(to_path, "w") as fid:
+                        fid.write(out)
+                    prefix = "RENDER            : "
+        elif config is None:
+            prefix = "DRY-RUN(copy)     : "
+        else:
+            prefix = "DRY-RUN(render)   : "
+        return f"{prefix}{from_path} => {to_path}"  # TODO User shouldn't have to care about the from_path.
+
+    def _is_git_repo(self) -> bool:
+        cmd = [
+            {
+                "dir": Path(self.target_dir),
+                "cmds": [
+                    "git rev-parse --show-toplevel",
+                ],
+            }
+        ]
+
         try:
-            self.configuration = core.merge_defaults_into_config(
-                core.read_toml(configuration_file), self.manifest["parameters"], self.target_files
-            )
-        except (TypeError, RuntimeError):
-            raise RuntimeError("Error while processing config file.")
+            core.run_commands(cmd)
+            return True
+        except CalledProcessError:
+            return False
+
+    def init_git_repo(self) -> list:
+        """
+        Return the list of commands required to initialize a git repo. See setup_vendor for structure.
+        """
+        return (
+            [
+                {
+                    "dir": Path(self.target_dir),
+                    "cmds": [
+                        "git init --initial-branch=main",
+                    ],
+                }
+            ]
+            if not self._is_git_repo()
+            else []
+        )
 
     @abstractmethod
-    def update(self, project_path: Path) -> None:
+    def init_pre_commit(self) -> list:
+        """
+        Return the list of commands required to initialize the pre-commit tool.
+        """
+        pass
+
+    @abstractmethod
+    def init_submodules(self) -> list:
+        """Return the commands to initialize git submodules."""
         pass
 
     @abstractmethod
@@ -72,39 +244,80 @@ class GeneratedProject(ABC):
 
 
 class GeneratedCPP(GeneratedProject):
-    def __init__(self, project_path: Path, project_name: str):
+    """Generator methods for cpp project"""
+
+    @property
+    def source_data_dir(self) -> Path:
+        return DATA_DIR / "cpp"
+
+    @source_data_dir.setter
+    def source_data_dir(self, source_path: Path) -> None:
+        self.source_data_dir = source_path
+
+    def __init__(self, project_path: Path, project_name: str = "", force: bool = False):
         """_summary_"""
-        self.source_data_dir = DATA_DIR / "cpp"
         if not self.source_data_dir.exists():
             raise FileNotFoundError(f"Cannot find atheneum_forge source directory {self.source_data_dir}.")
 
-        super().__init__(project_path, project_name)
+        super().__init__(project_path, project_name, force)
 
     def generate(self, project_path: Path, dry_run: bool = False) -> list[str]:
         """_summary_"""
         result: list[str] = []
-        self.check_directories(project_path)
-        core.process_files(
-            self.source_data_dir,
-            self.target_dir,
-            self.manifest["static"],
-            config=None,
-            dry_run=dry_run,
-            status_list=result,
-        )
-        core.process_files(
-            self.source_data_dir,
-            self.target_dir,
-            self.manifest["template"],
-            config=self.configuration,
-            dry_run=dry_run,
-            status_list=result,
-        )
+        self._check_directories(project_path)
+        for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
+            result.append(
+                self._process_single_file(
+                    f.from_path,
+                    f.to_path,
+                    self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
+                    None,
+                    f.onetime,
+                    dry_run,
+                )
+            )  # noqa: E501
+        for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
+            result.append(
+                self._process_single_file(
+                    f.from_path,
+                    f.to_path,
+                    self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
+                    self.configuration,
+                    f.onetime,
+                    dry_run,
+                )
+            )  # noqa: E501
+
         return result
+
+    def init_pre_commit(self) -> list:
+        """
+        Return the list of commands required to initialize the pre-commit tool.
+        """
+        return [
+            {
+                "dir": Path(self.target_dir),
+                "cmds": [
+                    "uvx pre-commit install",
+                ],
+            }
+        ]
+
+    def init_submodules(self) -> list:
+        """Return the commands to initialize git submodules."""
+        return core.setup_vendor(self.configuration, self.source_data_dir.parent)
 
 
 class GeneratedPython(GeneratedProject):
-    def __init__(self, project_path: Path, project_name: str, force: bool):
+    @property
+    def source_data_dir(self) -> Path:
+        return DATA_DIR / "python"
+
+    @source_data_dir.setter
+    def source_data_dir(self, source_path: Path) -> None:
+        self.source_data_dir = source_path
+
+    def __init__(self, project_path: Path, project_name: str = "", force: bool = False):
         """_summary_
 
         Args:
@@ -112,41 +325,65 @@ class GeneratedPython(GeneratedProject):
             project_name (str): _description_
 
         """
-        self.source_data_dir = DATA_DIR / "python"
         if not self.source_data_dir.exists():
             raise FileNotFoundError(f"Cannot find atheneum_forge source directory {self.source_data_dir}.")
 
-        super().__init__(project_path, project_name)
+        super().__init__(project_path, project_name, force)
 
     def generate(self, project_path: Path, dry_run: bool = False) -> list[str]:
         """_summary_"""
         result: list[str] = []
-        self.check_directories(project_path)
-        core.process_files(
-            self.source_data_dir,
-            self.target_dir,
-            [{"from": "", "to": "self.configuration[project_name]"}],
-            config=None,
-            dry_run=dry_run,
-            status_list=result,
-        )
-        core.process_files(
-            self.source_data_dir,
-            self.target_dir,
-            self.manifest["static"],
-            config=None,
-            dry_run=dry_run,
-            status_list=result,
-        )
-        core.process_files(
-            self.source_data_dir,
-            self.target_dir,
-            self.manifest["template"],
-            config=self.configuration,
-            dry_run=dry_run,
-            status_list=result,
-        )
+        self._check_directories(project_path)
+        # Generate a package folder with the same name as the project
+        for f in core.collect_source_files(
+            self.source_data_dir, self.target_dir, [{"from": "", "to": f"{self.configuration['project_name']}"}]
+        ):
+            result.append(
+                self._process_single_file(
+                    f.from_path,
+                    f.to_path,
+                    self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
+                    None,
+                    f.onetime,
+                    dry_run,
+                )
+            )
+        for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
+            result.append(
+                self._process_single_file(
+                    f.from_path,
+                    f.to_path,
+                    self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
+                    None,
+                    f.onetime,
+                    dry_run,
+                )
+            )
+        for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
+            result.append(
+                self._process_single_file(
+                    f.from_path,
+                    f.to_path,
+                    self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
+                    self.configuration,
+                    f.onetime,
+                    dry_run,
+                )
+            )
         return result
 
-    def update(self, project_path: Path) -> None:
-        pass
+    def init_pre_commit(self) -> list:
+        """
+        Return the list of commands required to initialize the pre-commit tool.
+        """
+        return [
+            {
+                "dir": Path(self.target_dir),
+                "cmds": [
+                    "uv run pre-commit install",  # uv run syncs the venv first, so pre-commit gets installed
+                ],
+            }
+        ]
+
+    def init_submodules(self) -> list:
+        return []

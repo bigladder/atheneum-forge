@@ -1,7 +1,7 @@
 static = [
+  {from="cmake/*", to="cmake/."},
   {from=".clang-format", to="."},
   {from=".gitignore", to=".", onetime=true},
-  {from="cmake/*", to="cmake/."},
   {from=".github/*", to=".github/."},
   {from=".github/workflows/*", to=".github/workflows/."},
   {from="", to="include"},
@@ -19,7 +19,7 @@ template = [
   {from=".github/workflows/clang-format-check.yml", to=".github/workflows/."},
   {from="Taskfile.yml", to=".", onetime=true, if="use_taskfile"},
 ]
-[parameters]
+[template-parameters]
 clang_format_version = {type="int", default=16}
 cpp_std = {type="enum", options=["17", "20"], default="20"}
 files_app = {type="str:glob", default="app/[a-zA-Z]*.cpp", private=true}
@@ -60,3 +60,14 @@ link_library_spec = "GTest::gtest_main"
 copy = """
 Copyright (c) {% if start_year is defined and start_year != year %}{{ start_year }} - {% endif %}{{ year }} Big Ladder Software, LLC.
 See the LICENSE.txt file for additional terms and conditions."""
+[update-strategies]
+toml = "dict"
+json = "dict"
+yaml = "dict"
+yml = "dict"
+txt = "text"
+csv = "text"
+md = "text"
+cmake = "text"
+format = "text"
+"" = "text"

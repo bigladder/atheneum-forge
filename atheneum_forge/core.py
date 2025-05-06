@@ -1,14 +1,10 @@
-import filecmp
-import importlib
 import logging
 import re
-import shutil
 import subprocess
-import sys
+from dataclasses import dataclass
 from datetime import datetime
-from io import StringIO
 from pathlib import Path, PurePath
-from typing import Any, List
+from typing import Any
 
 import tomli_w
 import tomllib
@@ -75,82 +71,18 @@ def build_path(starting_dir: Path, path_str: str) -> dict:
     return {"path": result, "glob": None if glob == "" else glob}
 
 
-def process_single_file(  # noqa: PLR0912
-    from_path: Path,
-    to_path: Path,
-    config: dict | None,
-    onetime: bool,
-    dry_run: bool,
-) -> str:
-    """Process a single file from from_path to to_path.
-
-    Args:
-        from_path (Path): path to a file to reference from
-        to_path (Path): path to a file to generate/update
-        config (dict | None): dict of parameters or None. If a dict, treat from_path as template.
-        onetime (bool): if True do not regenerate if to_path exists
-        dry_run (bool): if True, do a dry run. Don't actually update/generate.
-
-    Returns:
-        str: One-line processing status of the file
-    """
-    prefix = None
-    if onetime and to_path.exists():
-        prefix = "SKIPPED (one-time): "
-        return f"{prefix}{from_path} => {to_path}"
-    if not dry_run:
-        if not from_path.exists():
-            prefix = "SKIPPED (no source file): "
-        elif from_path.is_dir():
-            if not to_path.exists():
-                # Only create directory; don't populate it
-                to_path.mkdir(parents=True)
-                prefix = "MAKE DIR          : "
-            else:
-                prefix = "UP-TO-DATE(dir)   : "
-        elif config is None:
-            if not to_path.exists() or not filecmp.cmp(from_path, to_path):  # to-path not yet generated, or OUT OF DATE
-                if not to_path.parent.exists():  # Why this possibility?
-                    to_path.parent.mkdir(parents=True)
-                shutil.copyfile(from_path, to_path)  # This is always a wholesale COPY, not update/merge.
-                prefix = "COPY              : "
-            else:
-                # TODO: Some files, such as .gitignore, will have up-to-date sections and updateable sections
-                prefix = "UP-TO-DATE(file)  : "
-        else:  # If you give this function a config, it's because it contains template params?
-            template = None
-            with open(from_path, "r") as fid:
-                template = fid.read()
-            out = render(template, config)  # Render template using config
-            if not to_path.parent.exists():  # Why this again?
-                to_path.parent.mkdir(parents=True, exist_ok=True)
-            if to_path.exists():
-                with open(to_path, "r") as existing:
-                    if existing.read() == out:
-                        prefix = "UP-TO-DATE        : "
-                    else:  # OUT OF DATE
-                        with open(to_path, "w") as fid:  # Overwrite, no update
-                            fid.write(out)
-                        prefix = "RENDER            : "
-            else:  # File didn't exist, create (render)
-                with open(to_path, "w") as fid:
-                    fid.write(out)
-                prefix = "RENDER            : "
-    elif config is None:
-        prefix = "DRY-RUN(copy)     : "
-    else:
-        prefix = "DRY-RUN(render)   : "
-    return f"{prefix}{from_path} => {to_path}"
+@dataclass
+class ProjectFile:
+    from_path: Path
+    to_path: Path
+    onetime: bool
 
 
-def process_files(
+def collect_source_files(
     source_directory: Path,
     target_directory: Path,
-    file_paths: list,
-    config: None | dict,
-    dry_run: bool,
-    status_list: List[str],
-) -> None:
+    file_directives: list,
+) -> list[ProjectFile]:
     """Collect project files and folders; process them through generation engine.
 
     Args:
@@ -161,29 +93,29 @@ def process_files(
         dry_run (bool): If true, treat as a dry-run
         status_list (List[str]): keeps a list of which actions were taken
     """
-    for f in file_paths:
+    project_files: list[ProjectFile] = []
+
+    for f in file_directives:
         onetime = f.get("onetime", False)
-        # test_param = f.get("if", None)
-        # if config is not None and test_param in config:
-        #     if not config[test_param]:
-        #         log.info(f"SKIPPING    : {f['from']}, skip flag is true")
-        #         continue
+
         to_path_with_glob = build_path(target_directory, f["to"])
-        if to_path_with_glob["glob"] is not None:
+        if to_path_with_glob["glob"] is not None:  # TODO: Errors in the manifest shouldn't read out to the user!
             log.error("Glob not allowed in 'to' path. Path must be directory or file.")
             log.error(f"... 'to' path  : {to_path_with_glob['path']}")
             log.error(f"... 'glob' path: {to_path_with_glob['glob']}")
-            sys.exit(1)
+            raise FileNotFoundError
         to_path = to_path_with_glob["path"]
         if to_path.is_dir():
             to_path.mkdir(parents=True, exist_ok=True)
         else:
             to_path.parent.mkdir(parents=True, exist_ok=True)
+
         from_path_with_glob = build_path(source_directory, f["from"])
         from_path = from_path_with_glob["path"]
         if from_path_with_glob["glob"] is None:
             if from_path.is_dir():
-                # Directory name (or no name) in the "from" field is unused; "to" path will be resolved/created
+                # Directory name (no name -> source dir) in the "from" field is unused;
+                # "to" path will be resolved/created # TODO: What if to_path is "bad" / not a dir?
                 to_name = to_path
             elif "oname" in f:
                 # Single file output, new name
@@ -191,8 +123,7 @@ def process_files(
             else:
                 # Single file output, same name
                 to_name = to_path / from_path.name
-            result = process_single_file(from_path, to_name, config, onetime, dry_run)
-            status_list.append(result)
+            project_files.append(ProjectFile(from_path, to_name, onetime))
         else:
             if not to_path.exists():
                 to_path.mkdir(parents=True, exist_ok=True)
@@ -200,39 +131,8 @@ def process_files(
             for fpath in from_path.glob(glob):
                 if fpath.is_dir():
                     continue
-                result = process_single_file(fpath, to_path / fpath.name, config, onetime, dry_run)
-                status_list.append(result)
-
-
-def generate(project_name: str, source: str, target: str, manifest: dict, config: dict, dry_run: bool) -> list:
-    """Generate (or regenerate) the manifest files in repo_dir at target.
-
-    Args:
-        source (str): path to repo directory
-        target (str): path to target directory
-        manifest (dict): see read_manifest for data format
-        config (dict): the configuration of template parameters
-        dry_run (bool): if True, doesn't actually do the actions
-
-    Returns:
-        list: array of str indicating what was done
-    """
-    src_dir = Path(source)
-    tgt_dir = Path(target)
-    result: List[str] = []
-    if not dry_run:
-        if not src_dir.exists():
-            log.error(f"Source directory does not exist: {src_dir}")
-            return result
-        if not tgt_dir.exists():
-            tgt_dir.mkdir(parents=True, exist_ok=True)
-    # TODO: project-type specific generation steps
-    # process_files(
-    #     src_dir, tgt_dir, [{"from": "", "to": project_name}], config=None, dry_run=dry_run, status_list=result
-    # )
-    process_files(src_dir, tgt_dir, manifest["static"], config=None, dry_run=dry_run, status_list=result)
-    process_files(src_dir, tgt_dir, manifest["template"], config=config, dry_run=dry_run, status_list=result)
-    return result
+                project_files.append(ProjectFile(fpath, to_path / fpath.name, onetime))
+    return project_files
 
 
 def derive_default_parameter(defaults: dict, key: str, all_files: set | None = None) -> Any:
@@ -277,7 +177,7 @@ def derive_default_parameter(defaults: dict, key: str, all_files: set | None = N
 
 def create_config_toml(manifest: dict, project_name: str, all_files: set | None = None) -> str:
     """Create config TOML data from the given manifest."""
-    params = manifest["parameters"] if "parameters" in manifest else {}
+    params = manifest.get("template-parameters", {})
     params["project_name"] = {type: "str", "required": True, "default": project_name}
     configuration_entries = []
     for p in sorted(params.keys()):
@@ -322,7 +222,7 @@ def create_config_toml(manifest: dict, project_name: str, all_files: set | None 
     return "\n".join(configuration_entries) + "\n" + postfix
 
 
-def merge_defaults_into_config(config: dict, manifest_defaults: dict, all_files: set | None = None) -> dict:  # noqa: PLR0912
+def merge_defaults_into_config(config: dict, manifest_defaults: dict, target_files: set | None = None) -> dict:  # noqa: PLR0912
     """Collect all available configuration parameters and their correct values."""
     result = {}
     # For every attribute in the user-supplied configuration, check that the attribute is
@@ -360,7 +260,7 @@ def merge_defaults_into_config(config: dict, manifest_defaults: dict, all_files:
         if k not in config:
             if "default" not in v:
                 raise TypeError(f"Missing required config parameter '{p}'")
-            result[k] = derive_default_parameter(manifest_defaults, k, all_files)
+            result[k] = derive_default_parameter(manifest_defaults, k, target_files)
     return result
 
 
@@ -372,17 +272,22 @@ def read_toml(input_file: Path) -> dict:
 
     Raises:
         RuntimeError: Badly configured input file.
+        FileNotFoundError: No input file.
 
     Returns:
         dict: Key-value pairs extracted from toml format.
     """
-    try:
-        with open(input_file, "rb") as fid:
-            output = tomllib.load(fid)
-            return output
-    except tomllib.TOMLDecodeError as err:
-        log.error("Incorrect configuration file detected. Please check for invalid key-value pairs.")
-        raise RuntimeError(err)
+    if input_file.is_file():
+        try:
+            with open(input_file, "rb") as fid:
+                output = tomllib.load(fid)
+                return output
+        except tomllib.TOMLDecodeError:
+            log.error("Incorrect input file format detected. (Check for invalid key-value pairs.)")
+            raise RuntimeError from None
+    else:
+        log.error(f"{input_file} does not exist.")
+        raise FileNotFoundError(f"{input_file} does not exist.")
 
 
 def read_config(config: dict, parameters: dict, all_files: set | None = None) -> dict:
@@ -399,7 +304,7 @@ def read_config(config: dict, parameters: dict, all_files: set | None = None) ->
     return merge_defaults_into_config(config, parameters, all_files)
 
 
-def list_all_files(dir_path: Path) -> set:
+def list_files_in(dir_path: Path) -> set:
     """List all files relative to a dir_path using relative path strings.
 
     Args:
@@ -505,9 +410,10 @@ def run_commands(commands: list) -> None:
         for cmd in c["cmds"]:
             if not c["dir"].exists():
                 c["dir"].mkdir(parents=True)
+            log.info(cmd)
             result = subprocess.run(cmd, cwd=c["dir"], shell=True, check=False, capture_output=True, encoding="utf8")
             result.check_returncode()
-            log.info(result.stdout)
+            log.info(result.stdout)  # Only reached if success code (0) returned
 
 
 def gen_copyright(config: dict, copy_template: str, all_files: set) -> dict:
@@ -560,92 +466,3 @@ def update_copyright(file_content: str, copy_lines: list) -> str:
     else:
         new_lines.extend(file_lines)
     return "\n".join(new_lines)
-
-
-def dict_merge(source_file: Path, destination_file: Path) -> StringIO:
-    """
-    Add keys and subdictionaries from source to destination if destination doesn't contain those
-    keys. Otherwise, leave values alone.
-    """
-    source_dict, extension = load_dict(source_file)
-    destination_dict, _ = load_dict(destination_file)
-    _update_destination_dict(source_dict, destination_dict)
-    return dump_str(extension, destination_dict)
-
-
-def _update_destination_dict(source: dict, destination: dict) -> None:
-    if not source == destination:
-        if isinstance(source, dict) and isinstance(destination, dict):
-            replacement_keys = sorted(list(source.keys()))
-            existing_keys = sorted(list(destination.keys()))
-            for k in replacement_keys:
-                if k not in existing_keys:
-                    destination[k] = source[k]  # If the key doesn't exist, insert the subdict associated with the key
-                elif isinstance(source[k], list) and isinstance(destination[k], list):
-                    destination[k] = sorted(list(set(destination[k] + source[k])))
-                elif isinstance(source[k], str) and isinstance(destination[k], str):
-                    pass  # TODO: Leave strings alone, assuming generated project has ground truth?
-                else:
-                    # Repeat comparison one level down until the values are no longer dictionaries
-                    _update_destination_dict(source[k], destination[k])
-
-
-def text_merge(source_file: Path, destination_file: Path) -> StringIO:
-    """
-    Compare two text files line-by-line. Leave all lines in the existing file that do not
-    appear in the replacement, but add lines from the replacement that do not appear in the
-    existing.
-    """
-    if filecmp.cmp(destination_file, source_file):
-        return StringIO()
-    with open(destination_file, "r") as existing:
-        with open(source_file, "r") as replacement:
-            existing_lines = existing.readlines()
-            replacement_lines = replacement.readlines()
-            _update_destination_text_list(replacement_lines, existing_lines)
-    with StringIO() as output:
-        output.writelines(existing_lines)
-        return output
-
-
-def _update_destination_text_list(replacement_lines, existing_lines):
-    insert_index = 0
-    for line_index, line in enumerate(replacement_lines):
-        if line not in existing_lines:
-            existing_lines.insert(insert_index, line)
-            insert_index += 1
-        else:
-            insert_index = existing_lines.index(line) + 1
-
-
-def load_dict(source_file: Path) -> tuple[dict, str]:
-    match source_file.suffix:
-        case "json":
-            importlib.import_module("json")
-            with open(source_file, "r", encoding="utf-8") as input_file:
-                return json.load(input_file), "json"  # type: ignore # noqa: F821
-        case "yaml" | "yml":
-            importlib.import_module("yaml")
-            with open(source_file, "r", encoding="utf-8") as input_file:
-                return yaml.load(input_file, Loader=yaml.CLoader), "yaml"  # type: ignore # noqa: F821
-        case "toml":
-            importlib.import_module("toml")
-            with open(source_file, "r", encoding="utf-8") as input_file:
-                return toml.load(input_file), "toml"  # type: ignore # noqa: F821
-        case _:
-            return {}, ""
-
-
-def dump_str(extension: str, data: dict) -> StringIO:
-    match extension:
-        case "json":
-            importlib.import_module("json")
-            return StringIO(json.dumps(data))  # type: ignore # noqa: F821
-        case "yaml" | "yml":
-            importlib.import_module("yaml")
-            return StringIO(yaml.dump(data, default_flow_style=False, sort_keys=False))  # type: ignore # noqa: F821
-        case "toml":
-            importlib.import_module("toml")
-            return StringIO(toml.dump(data))  # type: ignore # noqa: F821
-        case _:
-            return StringIO("")

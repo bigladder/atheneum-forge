@@ -1,8 +1,6 @@
 # Atheneum Forge
 
 This project is a boiler-plate generator.
-Although it is intended to support multiple types of source code, it currently only supports C++.
-
 In contrast to a static template, the main ideas of the project are to:
 
 - not only be able to generate a "scaffolding" for a new (or existing) project
@@ -54,18 +52,21 @@ Also, we can continue to roll it out one-by-one to different company projects an
 
 ## Usage
 
+### For developers
+
+TODO: Format of manifest, to/from options, extra keywords
+
+### For users
+
 We hope to be able to get this project up on PyPI so that it will just be a pip install away!
 
-In the mean time, it can be used with the uv dependency manager:
+In the mean time, it can be used with the [uv dependency manager](https://docs.astral.sh/uv/getting-started/installation/):
 
 ```
-> # clone the repository
+> uvx migrate-to-uv # for projects currently using poetry
+> # Check pyproject.toml - correct any unsupported text (authors, license name ("BSD-3-Clause" works)
 > uv sync
-> uv run aforge --help
-> uv run aforge init-with-config path/to/new-or-existing/repo/ cpp
-> # edit the generated config.toml, fill in required data
-> # now generate or update the scaffolding/boilerplate
-> aforge gen path/to/new-or-existing/repo/config.toml cpp
+> uvx --from git+https://github.com/bigladder/atheneum-forge.git@allow-updating forge init . <project_name> --type <cpp | python>
 ```
 
 ## Reference
