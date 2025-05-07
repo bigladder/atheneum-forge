@@ -38,7 +38,7 @@ no_implicit_optional = true
 check_untyped_defs = true
 
 [[tool.mypy.overrides]]
-module = "lattice.*"
+module = "{{ project_name }}.*"
 disable_error_code = ["annotation-unchecked","import"]
 
 [build-system]
