@@ -275,7 +275,7 @@ class GeneratedCPP(GeneratedProject):
                     f.onetime,
                     dry_run,
                 )
-            )  # noqa: E501
+            )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
             result.append(
                 self._process_single_file(
@@ -286,7 +286,7 @@ class GeneratedCPP(GeneratedProject):
                     f.onetime,
                     dry_run,
                 )
-            )  # noqa: E501
+            )
 
         return result
 

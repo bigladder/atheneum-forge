@@ -3,10 +3,10 @@ static = [
   {from=".github/workflows/*", to=".github/workflows/."},
   {from=".python-version", to="."},
   {from=".pre-commit-config.yaml", to="."},
-  {from="pyproject.toml", to="."},
   {from="uv.lock.toml", to=".", oname="uv.lock"},
 ]
 template = [
+  {from="pyproject.toml", to="."},
   {from="LICENSE.txt", to=".", onetime=true},
   {from="README.md", to=".", onetime=true},
   {from="Dockerfile.format", to="."},
