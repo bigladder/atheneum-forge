@@ -66,7 +66,7 @@ In the mean time, it can be used with the [uv dependency manager](https://docs.a
 > uvx migrate-to-uv # for projects currently using poetry
 > # Check pyproject.toml - correct any unsupported text (authors, license name ("BSD-3-Clause" works)
 > uv sync
-> uvx --from git+https://github.com/bigladder/atheneum-forge.git@allow-updating forge init . <project_name> --type <cpp | python>
+> uvx --from git+https://github.com/bigladder/atheneum-forge.git@main forge init . <project_name> --type <cpp | python>
 ```
 
 ## Reference
