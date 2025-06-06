@@ -4,8 +4,8 @@ static = [
   {from=".gitignore", to=".", onetime=true},
   {from=".github/*", to=".github/."},
   {from=".github/workflows/*", to=".github/workflows/."},
-  {from="", to="include"},
-  {from="", to="doc"}
+  {from="", to="include", onetime=true},
+  {from="", to="doc", onetime=true}
 ]
 template = [
   {from="CMakeLists.txt", to="."},
@@ -18,6 +18,7 @@ template = [
   {from="app/CMakeLists.txt", to="app/.", if="use_app"},
   {from=".github/workflows/clang-format-check.yml", to=".github/workflows/."},
   {from="Taskfile.yml", to=".", onetime=true, if="use_taskfile"},
+  {from=".clang-tidy", to="."},
 ]
 [template-parameters]
 clang_format_version = {type="int", default=16}

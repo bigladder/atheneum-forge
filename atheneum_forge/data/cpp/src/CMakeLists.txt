@@ -1,6 +1,6 @@
 # Copyright (c) {% if start_year is defined and start_year != year %}{{ start_year }} - {% endif %}{{ year }} Big Ladder Software, LLC.
 # See the LICENSE.txt file for additional terms and conditions.
-# NOTE: THIS FILE IS AUTO-GENERATED. DO NOT EDIT.
+# NOTE: THIS FILE IS AUTO-GENERATED.
 # Main library
 set(library_sources
     {%- for src in files_src %}
