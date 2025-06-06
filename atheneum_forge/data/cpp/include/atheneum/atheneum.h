@@ -18,13 +18,15 @@ class Atheneum
 {
   public:
     // If necessary, below are templates for the rule-of-five. Otherwise, prefer rule-of-zero.
-    Atheneum();
-    Atheneum(const Atheneum&) = default;
-    Atheneum(Atheneum&&) = default;
-    Atheneum& operator=(const Atheneum&) = default;
-    Atheneum& operator=(Atheneum&&) = default;
-    //virtual
-      ~Atheneum() = default;
+    // Atheneum();
+    // make virtual if base class; if virtual, default, delete, or define remaining constructors below
+    // ~Atheneum() = default;
+
+    // Atheneum(const Atheneum&) = default;
+    // Atheneum(Atheneum&&) = default;
+    // Atheneum& operator=(const Atheneum&) = default;
+    // Atheneum& operator=(Atheneum&&) = default;
+
 
     int answer();
 
