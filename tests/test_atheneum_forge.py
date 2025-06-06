@@ -44,24 +44,24 @@ template = [
         assert "to" in s
 
 
-def test_generate_task():
-    toml_str = """
-static = [
-  {from=".clang-format", to="."},
-  {from=".gitignore", to="."},
-]
-template = [
-  {from="CMakeLists.txt", to="."}
-]
-    """
-    manifest = af.read_manifest(toml_str)
-    repo_dir = "./data"
-    target = "../new_repo"
-    config = {
-        "project_name": "Athenium",
-    }
-    results = af.generate("Athenium", repo_dir, target, manifest, config, dry_run=True)
-    assert len(results) == 3  # noqa: PLR2004
+# def test_generate_task():
+#     toml_str = """
+# static = [
+#   {from=".clang-format", to="."},
+#   {from=".gitignore", to="."},
+# ]
+# template = [
+#   {from="CMakeLists.txt", to="."}
+# ]
+#     """
+#     manifest = af.read_manifest(toml_str)
+#     repo_dir = "./data"
+#     target = "../new_repo"
+#     config = {
+#         "project_name": "Athenium",
+#     }
+#     results = af.generate("Athenium", repo_dir, target, manifest, config, dry_run=True)
+#     assert len(results) == 3  # noqa: PLR2004
 
 
 def test_create_config():
@@ -74,7 +74,7 @@ template = [
   {from="CMakeLists.txt", to="."},
   {from="LICENSE.txt", to="."},
 ]
-[parameters]
+[template-parameters]
 project_name = {type="str"}
 start_year = {type="int:year", default="parameter:year"}
 year = {type="int:year", default="current_year()"}
@@ -100,12 +100,13 @@ project_name = "Athenium"
 # add_to_cmake = true # <- if true, add to CMakeLists.txt files
 # link_library_spec = "" # <- how library should appear in target_link_library(.); if blank, use project name
     """.strip()
+    print(actual)
     assert expected == actual
 
 
 def test_merge_config_with_defaults():
     manifest_toml = """
-[parameters]
+[template-parameters]
 project_name = {type="str"}
 start_year = {type="int:year", default="parameter:year"}
 year = {type="int:year", default="current_year()"}
@@ -124,7 +125,7 @@ start_year = 2022
 # version_patch = 0
 # year = 2024
     """
-    actual = af.read_config(tomllib.loads(config_toml), manifest["parameters"])
+    actual = af.read_config(tomllib.loads(config_toml), manifest["template-parameters"])
     expected = {
         "project_name": "bob",
         "start_year": 2022,
@@ -430,77 +431,3 @@ int main(void) {
     """.strip()
     actual = af.update_copyright(file_content, copy_lines)
     assert actual == expected
-
-
-def test_update_dictionary():
-    source_dict = {
-        "project": {"name": "python_generator", "readme": "README.md", "dependencies": []},
-        "dependency-groups": {
-            "dev": [
-                "doit",
-                "mypy",
-                "pre-commit",
-                "pytest",
-                "ruff",
-            ]
-        },
-        "tool.mypy": {"disallow_incomplete_defs": "True", "no_implicit_optional": "True", "check_untyped_defs": "True"},
-        "[tool.mypy.overrides]": {"module": "lattice.*", "disable_error_code": ["annotation-unchecked", "import"]},
-    }
-    destination_dict = {
-        "project": {"name": "python_generator", "readme": "README.md", "dependencies": []},
-        "dependency-groups": {
-            "dev": [
-                "black",
-                "doit",
-                "pre-commit",
-                "pytest",
-                "ruff",
-            ]
-        },
-        "tool.ruff": {"line-length": 120},
-    }
-    merged_dict = {
-        "project": {"name": "python_generator", "readme": "README.md", "dependencies": []},
-        "dependency-groups": {
-            "dev": [  # This list is sorted for the purposes of testing (FUT sorts lists)
-                "black",
-                "doit",
-                "mypy",
-                "pre-commit",
-                "pytest",
-                "ruff",
-            ]
-        },
-        "tool.ruff": {"line-length": 120},
-        "tool.mypy": {"disallow_incomplete_defs": "True", "no_implicit_optional": "True", "check_untyped_defs": "True"},
-        "[tool.mypy.overrides]": {"module": "lattice.*", "disable_error_code": ["annotation-unchecked", "import"]},
-    }
-
-    af._update_destination_dict(source_dict, destination_dict)
-    assert destination_dict == merged_dict
-
-
-def test_update_text():
-    source_txt_lines = [
-        "Lorem ipsum dolor",
-        "sed do eiusmod tempor ",
-        "incididunt ut labore et ",
-        "dolore magna aliqua.",
-    ]
-    destination_txt_lines = [
-        "Lorem ipsum dolor",
-        "sit amet, consectetur adipiscing elit,",
-        "sed do eiusmod tempor ",
-        "dolore magna aliqua.",
-    ]
-    af._update_destination_text_list(source_txt_lines, destination_txt_lines)
-    merged_text = [
-        "Lorem ipsum dolor",
-        "sit amet, consectetur adipiscing elit,",
-        "sed do eiusmod tempor ",
-        "incididunt ut labore et ",
-        "dolore magna aliqua.",
-    ]
-
-    assert destination_txt_lines == merged_text

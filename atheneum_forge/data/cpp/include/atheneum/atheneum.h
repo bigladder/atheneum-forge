@@ -17,8 +17,15 @@ class AtheneumPrivate;
 class Atheneum
 {
   public:
+    // If necessary, below are templates for the rule-of-five. Otherwise, prefer rule-of-zero.
     Atheneum();
-    ~Atheneum();
+    Atheneum(const Atheneum&) = default;
+    Atheneum(Atheneum&&) = default;
+    Atheneum& operator=(const Atheneum&) = default;
+    Atheneum& operator=(Atheneum&&) = default;
+    //virtual
+      ~Atheneum() = default;
+
     int answer();
 
   private:
