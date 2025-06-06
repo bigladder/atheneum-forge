@@ -8,7 +8,7 @@ import atheneum_forge.core as af
 
 def test_template():
     config = {
-        "project_name": "Athenium",
+        "project_name": "Atheneum",
     }
     template = """
 cmake_minimum_required(VERSION 3.10) # required for gtest_discover_tests
@@ -17,7 +17,7 @@ project({{ project_name | lower }}) # Replace
     actual = af.render(template, config)
     expected = """
 cmake_minimum_required(VERSION 3.10) # required for gtest_discover_tests
-project(athenium) # Replace
+project(atheneum) # Replace
     """
     assert actual == expected
 
@@ -58,9 +58,9 @@ template = [
 #     repo_dir = "./data"
 #     target = "../new_repo"
 #     config = {
-#         "project_name": "Athenium",
+#         "project_name": "Atheneum",
 #     }
-#     results = af.generate("Athenium", repo_dir, target, manifest, config, dry_run=True)
+#     results = af.generate("Atheneum", repo_dir, target, manifest, config, dry_run=True)
 #     assert len(results) == 3  # noqa: PLR2004
 
 
@@ -84,9 +84,9 @@ version_patch = {type="int:>=0", default=0}
 use_app = {type="bool", default=false}
     """
     data = af.read_manifest(toml_str)
-    actual = af.create_config_toml(data, "Athenium")
+    actual = af.create_config_toml(data, "Atheneum")
     expected = """
-project_name = "Athenium"
+project_name = "Atheneum"
 # start_year = 2025
 # use_app = false
 # version_major = 0
