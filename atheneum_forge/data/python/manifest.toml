@@ -1,6 +1,8 @@
 static = [
+  {from="", to="test", onetime=true},
   {from=".gitignore", to=".", onetime=true},
   {from=".github/workflows/*", to=".github/workflows/."},
+  {from=".vscode/*", to=".vscode/."},
   {from=".python-version", to="."},
   {from=".pre-commit-config.yaml", to="."},
   {from="uv.lock.toml", to=".", oname="uv.lock"},
