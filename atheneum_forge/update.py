@@ -144,6 +144,9 @@ def write_precursors_and_updated_file(
             their_render.write(from_contents)
 
     buffer = update_single_file(strategy_name, theirs, ours)
-    with open(to_path, "w") as updated_file:
-        buffer.seek(0)
-        shutil.copyfileobj(buffer, updated_file)
+    try:
+        with open(to_path, "w") as updated_file:
+            buffer.seek(0)
+            shutil.copyfileobj(buffer, updated_file)
+    except ValueError:
+        console_log.error(f"{to_path} is not open or does not exist.")
