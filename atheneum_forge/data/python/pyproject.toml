@@ -45,8 +45,11 @@ disable_error_code = ["annotation-unchecked","import"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build.targets.wheel]
-packages = ["{{ project_name }}"]
+[tool.hatch.build]
+only-include = ["{{ project_name }}"] # Allows packaging of project_name even
+                                      # if no __init__ provided (namespace package)
+
+# For hatch build and configuration options, see https://hatch.pypa.io/latest/
 
 [tool.uv]
 [tool.uv.sources]

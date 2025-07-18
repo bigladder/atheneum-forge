@@ -50,46 +50,6 @@ console_log = logging.getLogger("rich")
 app = typer.Typer(add_completion=False, pretty_exceptions_enable=False)
 
 
-# def setup_dir(config_path: Path) -> dict:
-#     """
-#     Helper function to do common setup.
-#     """
-#     p_config = Path(config_path).resolve()
-#     if not p_config.exists():
-#         console_log.error(f'Config file "{p_config}" doesn\'t exist.')
-#         raise typer.Exit(code=3)
-#     if not p_config.is_file():
-#         console_log.error(f'Config "{p_config}" is not a file.')
-
-#     tgt_dir = p_config.parent
-#     if not tgt_dir.exists() or not p_config.exists():
-#         console_log.error("Project directory or config file do not exist.")
-#         raise typer.Exit(code=2)
-#     config_toml = core.read_toml(p_config)
-#     project_type = config_toml["project_type"]
-
-#     src_dir = DATA_DIR / project_type
-#     if not src_dir.exists() or not src_dir.is_dir():
-#         console_log.error(f'"{src_dir}" does not exist or is not a directory.')
-#         raise typer.Exit(code=1)
-#     manifest = core.read_toml(src_dir / "manifest.toml")
-#     target_files = core.list_files_in(tgt_dir)
-#     try:
-#         config = core.merge_defaults_into_config(config_toml, manifest["parameters"], target_files)
-#     except (TypeError, RuntimeError) as err:
-#         console_log.error("Error while processing config file.")
-#         console_log.error(err)
-#         raise typer.Exit(code=1)
-#     return {
-#         "p_config": p_config,
-#         "config": config,
-#         "tgt_dir": tgt_dir,
-#         "src_dir": src_dir,
-#         "manifest": manifest,
-#         "all_files": target_files,
-#     }
-
-
 @app.command("generate")
 def generate_project_files(  # type: ignore
     project_path: Annotated[Path, typer.Argument(help="Directory location of the project.")],
@@ -113,24 +73,26 @@ def generate_project_files(  # type: ignore
         else:
             console_log.error("Project type was not found.")
             raise typer.Exit(1)
+    try:
+        result = generator.generate(project_path)  # type: ignore
+        for r in result:
+            console_log.info(
+                f"- {r}",
+            )
 
-    result = generator.generate(project_path)  # type: ignore
-    for r in result:
-        console_log.info(
-            f"- {r}",
-        )
+        if git_init:
+            try:
+                core.run_commands(generator.init_git_repo() + generator.init_pre_commit())  # type: ignore
+            except CalledProcessError as err:
+                console_log.error(err)
 
-    if git_init:
-        try:
-            core.run_commands(generator.init_git_repo() + generator.init_pre_commit())  # type: ignore
-        except CalledProcessError as err:
-            console_log.error(err)
-
-    if submodule_init:
-        try:
-            core.run_commands(generator.init_submodules())  # type: ignore
-        except CalledProcessError as err:
-            console_log.error(err)
+        if submodule_init:
+            try:
+                core.run_commands(generator.init_submodules())  # type: ignore
+            except CalledProcessError as err:
+                console_log.error(err)
+    except Exception:
+        raise typer.Exit(1)
 
 
 ProjType = project_factory.ProjectType

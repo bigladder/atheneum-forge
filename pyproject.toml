@@ -10,7 +10,7 @@ dependencies = [
     "typer>=0.12.5,<0.13",
     "click<8.2.0",
     "tomli-w>=1.1.0,<2",
-    "pyyaml",
+    "pyyaml>=6.0.0",
     "yamlcore",
 ]
 
@@ -55,3 +55,6 @@ disable_error_code = ["annotation-unchecked","import"]
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.hatch.build]
+only-include = ["atheneum_forge"]

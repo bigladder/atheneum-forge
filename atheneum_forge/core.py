@@ -78,11 +78,7 @@ class ProjectFile:
     onetime: bool
 
 
-def collect_source_files(
-    source_directory: Path,
-    target_directory: Path,
-    file_directives: list,
-) -> list[ProjectFile]:
+def collect_source_files(source_directory: Path, target_directory: Path, file_directives: list) -> list[ProjectFile]:
     """Collect project files and folders; process them through generation engine.
 
     Args:
