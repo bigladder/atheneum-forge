@@ -76,7 +76,7 @@ class GeneratedProject(ABC):
                 )
             else:
                 self.configuration = core.read_toml(configuration_file)
-                self.do_not_update: set[Path] = set(
+                self.do_not_update = set(
                     [Path(self.target_dir, exclude_file) for exclude_file in self.configuration.get("skip", [])]
                 )
         elif not configuration_file.exists() or force:  # Create or overwrite existing configuration
@@ -120,13 +120,7 @@ class GeneratedProject(ABC):
             raise FileNotFoundError(f'Config "{configuration_file}" is not a file.')
 
     def _process_single_file(  # noqa: PLR0912
-        self,
-        from_path: Path,
-        to_path: Path,
-        strategy: str,
-        config: dict | None,
-        onetime: bool,
-        dry_run: bool,
+        self, from_path: Path, to_path: Path, strategy: str, config: dict | None, onetime: bool, dry_run: bool
     ) -> str:
         """Process a single file from from_path to to_path: copy, update, render, or skip.
 
@@ -140,6 +134,7 @@ class GeneratedProject(ABC):
         Returns:
             str: One-line processing status of the file
         """
+        print("_process_single_file:")
         prefix = None
         width = 20
         if onetime and to_path.exists():
@@ -214,9 +209,7 @@ class GeneratedProject(ABC):
             [
                 {
                     "dir": Path(self.target_dir),
-                    "cmds": [
-                        "git init --initial-branch=main",
-                    ],
+                    "cmds": ["git init --initial-branch=main", "git add .", 'git commit -m "Initial commit"'],
                 }
             ]
             if not self._is_git_repo()
@@ -264,17 +257,17 @@ class GeneratedCPP(GeneratedProject):
         self._check_directories(project_path)
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
             if f.to_path.resolve() not in self.do_not_update:
+                update_type = "txt"  # TODO: robustify default
+                for file_type in f.from_path.suffixes:
+                    if file_type.lstrip(".") in self.manifest["update-strategies"]:
+                        update_type = self.manifest["update-strategies"][file_type.lstrip(".")]
                 result.append(
                     self._process_single_file(
-                        f.from_path,
-                        f.to_path,
-                        self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
-                        self.configuration,
-                        f.onetime,
-                        dry_run,
+                        f.from_path, f.to_path, update_type, self.configuration, f.onetime, dry_run
                     )
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
+            print(f.from_path, f.to_path)
             if f.to_path.resolve() not in self.do_not_update:
                 result.append(
                     self._process_single_file(

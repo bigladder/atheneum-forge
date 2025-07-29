@@ -86,12 +86,15 @@ def generate_project_files(  # type: ignore
             except CalledProcessError as err:
                 console_log.error(err)
 
-        if submodule_init:
-            try:
-                core.run_commands(generator.init_submodules())  # type: ignore
-            except CalledProcessError as err:
-                console_log.error(err)
-    except Exception:
+        # if submodule_init:
+        #     try:
+        #         core.run_commands(generator.init_submodules())  # type: ignore
+        #     except CalledProcessError as err:
+        #         console_log.error(err)
+
+    except AssertionError as a:
+        raise a
+    except Exception:  # TODO: Specify exception(s)
         raise typer.Exit(1)
 
 

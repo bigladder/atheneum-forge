@@ -1,5 +1,5 @@
 macro(add_submodule submodule_name)
-    # Clone a submodule and add it's subdirectory to the build (if the corresponding target hasn't already been added)
+    # Clone a submodule and add its subdirectory to the build (if the corresponding target hasn't already been added)
     set(options) # None
     set(one_value_args
             TARGET_NAME           # Specify if target name is different from the submodule name
