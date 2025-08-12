@@ -5,7 +5,6 @@ static = [
   {from=".vscode/*", to=".vscode/."},
   {from=".python-version", to="."},
   {from=".pre-commit-config.yaml", to="."},
-  {from="uv.lock.toml", to=".", oname="uv.lock"},
 ]
 template = [
   {from="pyproject.toml", to="."},

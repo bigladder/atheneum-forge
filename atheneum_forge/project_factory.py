@@ -1,5 +1,6 @@
 import filecmp
 import logging
+import re
 import shutil
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -14,6 +15,10 @@ FORGE_CONFIG = "forge.toml"
 
 
 console_log = logging.getLogger("rich")
+
+
+def underscore(name):
+    return re.sub(r"[-_.]+", "_", name).lower()
 
 
 class ProjectType(str, Enum):
@@ -134,7 +139,6 @@ class GeneratedProject(ABC):
         Returns:
             str: One-line processing status of the file
         """
-        print("_process_single_file:")
         prefix = None
         width = 20
         if onetime and to_path.exists():
@@ -328,7 +332,9 @@ class GeneratedPython(GeneratedProject):
         self._check_directories(project_path)
         # Generate a package folder with the same name as the project
         for f in core.collect_source_files(
-            self.source_data_dir, self.target_dir, [{"from": "", "to": f"{self.configuration['project_name']}"}]
+            self.source_data_dir,
+            self.target_dir,
+            [{"from": "", "to": f"{underscore(self.configuration['project_name'])}"}],
         ):
             result.append(
                 self._process_single_file(
@@ -340,6 +346,7 @@ class GeneratedPython(GeneratedProject):
                     dry_run,
                 )
             )
+        # TODO: Add __init__.py under project directory
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
                 result.append(

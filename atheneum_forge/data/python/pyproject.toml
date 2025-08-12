@@ -13,6 +13,7 @@ dev = [
     "doit",
     "pre-commit",
     "mypy",
+    "twine>=6.1.0",
 ]
 
 [tool.ruff]
@@ -45,11 +46,11 @@ disable_error_code = ["annotation-unchecked","import"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
-[tool.hatch.build]
-only-include = ["{{ project_name }}"] # Allows packaging of project_name even
-                                      # if no __init__ provided (namespace package)
+[tool.hatch.build.targets.wheel]
+packages = ["{{ package_name }}"] # see also: 'only-include' https://hatch.pypa.io/1.13/config/build/#explicit-selection
 
-# For hatch build and configuration options, see https://hatch.pypa.io/latest/
+[tool.hatch.build.targets.wheel.force-include]
+# "path-to-extra-resource-files" = "path-in-distribution-package"
 
 [tool.uv]
 [tool.uv.sources]

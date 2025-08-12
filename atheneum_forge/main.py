@@ -3,6 +3,7 @@ Copyright (C) 2024 Big Ladder Software, LLC. See LICENSE.txt for license informa
 """
 
 import logging
+import re
 from pathlib import Path
 from subprocess import CalledProcessError
 
@@ -47,6 +48,11 @@ console_log = logging.getLogger("rich")
 # file_handler.setFormatter(formatter)
 # console_log.addHandler(file_handler)
 
+
+def normalize(name):
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
 app = typer.Typer(add_completion=False, pretty_exceptions_enable=False)
 
 
@@ -73,29 +79,24 @@ def generate_project_files(  # type: ignore
         else:
             console_log.error("Project type was not found.")
             raise typer.Exit(1)
-    try:
-        result = generator.generate(project_path)  # type: ignore
-        for r in result:
-            console_log.info(
-                f"- {r}",
-            )
 
-        if git_init:
-            try:
-                core.run_commands(generator.init_git_repo() + generator.init_pre_commit())  # type: ignore
-            except CalledProcessError as err:
-                console_log.error(err)
+    result = generator.generate(project_path)  # type: ignore
+    for r in result:
+        console_log.info(
+            f"- {r}",
+        )
 
-        # if submodule_init:
-        #     try:
-        #         core.run_commands(generator.init_submodules())  # type: ignore
-        #     except CalledProcessError as err:
-        #         console_log.error(err)
+    if git_init:
+        try:
+            core.run_commands(generator.init_git_repo() + generator.init_pre_commit())  # type: ignore
+        except CalledProcessError as err:
+            console_log.error(err)
 
-    except AssertionError as a:
-        raise a
-    except Exception:  # TODO: Specify exception(s)
-        raise typer.Exit(1)
+    if submodule_init:
+        try:
+            core.run_commands(generator.init_submodules())  # type: ignore
+        except CalledProcessError as err:
+            console_log.error(err)
 
 
 ProjType = project_factory.ProjectType
@@ -104,7 +105,7 @@ ProjType = project_factory.ProjectType
 @app.command("init")
 def initialize_configuration(  # noqa: PLR0913
     project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
-    project_name: Annotated[str, typer.Argument(help="Name of the project.")],
+    project_name: Annotated[str, typer.Argument(help="Name of the project.")] = "",
     type: ProjType = ProjType.none,
     generate: Annotated[
         bool, typer.Option(help="Automatically generate project files alongside configuration.")
@@ -121,6 +122,8 @@ def initialize_configuration(  # noqa: PLR0913
     """
     try:
         generator: project_factory.GeneratedProject | None
+        if not project_name:
+            project_name = Path(project_path).resolve().name  # normalized or raw?
         if type == ProjType.none:
             # We'd like 'type' to be specified as an optional argument, but a "valid" default could have
             # unintended consequences.
