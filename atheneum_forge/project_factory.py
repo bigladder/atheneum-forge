@@ -326,6 +326,8 @@ class GeneratedPython(GeneratedProject):
 
         super().__init__(project_path, project_name, force)
 
+        self.configuration["package_name"] = f"{underscore(self.configuration['project_name'])}"
+
     def generate(self, project_path: Path, dry_run: bool = False) -> list[str]:
         """_summary_"""
         result: list[str] = []
