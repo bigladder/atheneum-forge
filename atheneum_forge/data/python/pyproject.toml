@@ -13,6 +13,7 @@ dev = [
     "doit",
     "pre-commit",
     "mypy",
+    "twine>=6.1.0",
 ]
 
 [tool.ruff]
@@ -46,7 +47,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["{{ project_name }}"]
+packages = ["{{ package_name }}"] # see also: 'only-include' https://hatch.pypa.io/1.13/config/build/#explicit-selection
+
+[tool.hatch.build.targets.wheel.force-include]
+# "path-to-extra-resource-files" = "path-in-distribution-package"
 
 [tool.uv]
 [tool.uv.sources]

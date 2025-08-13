@@ -3,22 +3,24 @@ static = [
   {from=".clang-format", to="."},
   {from=".gitignore", to=".", onetime=true},
   {from=".github/*", to=".github/."},
-  {from=".github/workflows/*", to=".github/workflows/."},
+  {from=".github/workflows/build-and-test.yml", to=".github/workflows/."},
+  {from=".github/workflows/clang-tidy-check.yml", to=".github/workflows/."},
+  {from=".github/workflows/doxygen-completeness-check.yml", to=".github/workflows/."},
   {from="", to="include", onetime=true},
   {from="", to="doc", onetime=true}
 ]
 template = [
-  {from="CMakeLists.txt", to="."},
-  {from="LICENSE.txt", to=".", onetime=true},
-  {from="README.md", to=".", onetime=true},
-  {from="src/CMakeLists.txt", to="src/."},
-  {from="vendor/CMakeLists.txt", to="vendor/."},
-  {from="test/CMakeLists.txt", to="test/."},
-  {from="Dockerfile.format", to="."},
-  {from="app/CMakeLists.txt", to="app/.", if="use_app"},
-  {from=".github/workflows/clang-format-check.yml", to=".github/workflows/."},
-  {from="Taskfile.yml", to=".", onetime=true, if="use_taskfile"},
-  {from=".clang-tidy", to="."},
+  {from="CMakeLists.txt.j2", to=".", oname="CMakeLists.txt"},
+  {from="LICENSE.txt.j2", to=".", onetime=true, oname="LICENSE.txt"},
+  {from="README.md.j2", to=".", onetime=true, oname="README.md"},
+  {from="src/CMakeLists.txt.j2", to="src/.", oname="CMakeLists.txt"},
+  {from="vendor/CMakeLists.txt.j2", to="vendor/.", oname="CMakeLists.txt"},
+  {from="test/CMakeLists.txt.j2", to="test/.", oname="CMakeLists.txt"},
+  {from="Dockerfile.format.j2", to=".", oname="Dockerfile.format"},
+  {from="app/CMakeLists.txt.j2", to="app/.", oname="CMakeLists.txt", if="use_app"},
+  {from=".github/workflows/clang-format-check.yml.j2", to=".github/workflows/.", oname="clang-format-check.yml"},
+  {from="Taskfile.yml.j2", to=".", onetime=true, oname="Taskfile.yml", if="use_taskfile"},
+  {from=".clang-tidy.j2", to=".", oname=".clang-tidy"},
 ]
 [template-parameters]
 clang_format_version = {type="int", default=16}

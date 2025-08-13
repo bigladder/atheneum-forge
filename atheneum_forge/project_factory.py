@@ -1,5 +1,6 @@
 import filecmp
 import logging
+import re
 import shutil
 from abc import ABC, abstractmethod
 from enum import Enum
@@ -14,6 +15,10 @@ FORGE_CONFIG = "forge.toml"
 
 
 console_log = logging.getLogger("rich")
+
+
+def underscore(name):
+    return re.sub(r"[-_.]+", "_", name).lower()
 
 
 class ProjectType(str, Enum):
@@ -65,6 +70,7 @@ class GeneratedProject(ABC):
 
         path_manifest = self.source_data_dir / "manifest.toml"
         self.manifest = core.read_toml(path_manifest)
+        self.do_not_update: set[Path] = set()
 
         configuration_file = self.target_dir / FORGE_CONFIG
 
@@ -75,16 +81,19 @@ class GeneratedProject(ABC):
                 )
             else:
                 self.configuration = core.read_toml(configuration_file)
+                self.do_not_update = set(
+                    [Path(self.target_dir, exclude_file) for exclude_file in self.configuration.get("skip", [])]
+                )
         elif not configuration_file.exists() or force:  # Create or overwrite existing configuration
             config_str = core.create_config_toml(self.manifest, project_name)
             with open(configuration_file, "w") as fid:
                 fid.write(config_str)
 
-            self.target_files: set[Path] = core.list_files_in(self.target_dir)
+            target_files: set[Path] = core.list_files_in(self.target_dir)
             try:
                 # Read the created file back into a member dictionary
                 self.configuration = core.merge_defaults_into_config(
-                    core.read_toml(configuration_file), self.manifest["template-parameters"], self.target_files
+                    core.read_toml(configuration_file), self.manifest["template-parameters"], target_files
                 )
             except (TypeError, RuntimeError, FileNotFoundError):
                 raise RuntimeError("Error while processing config file.")
@@ -115,22 +124,8 @@ class GeneratedProject(ABC):
         if not configuration_file.is_file():
             raise FileNotFoundError(f'Config "{configuration_file}" is not a file.')
 
-        # self.target_files = core.list_all_files(self.target_dir)
-        # try:
-        #     self.configuration = core.merge_defaults_into_config(
-        #         core.read_toml(configuration_file), self.manifest["parameters"], self.target_files
-        #     )
-        # except (TypeError, RuntimeError):
-        #     raise RuntimeError("Error while processing config file.")
-
     def _process_single_file(  # noqa: PLR0912
-        self,
-        from_path: Path,
-        to_path: Path,
-        strategy: str,
-        config: dict | None,
-        onetime: bool,
-        dry_run: bool,
+        self, from_path: Path, to_path: Path, strategy: str, config: dict | None, onetime: bool, dry_run: bool
     ) -> str:
         """Process a single file from from_path to to_path: copy, update, render, or skip.
 
@@ -145,30 +140,31 @@ class GeneratedProject(ABC):
             str: One-line processing status of the file
         """
         prefix = None
+        width = 20
         if onetime and to_path.exists():
-            prefix = "SKIPPED (one-time): "
-            return f"{prefix}{from_path} => {to_path}"
+            prefix = f"{'SKIPPED (one-time)':<{width}}: "
+            return f"{prefix}{to_path}"
         if not dry_run:
             if not from_path.exists():
-                prefix = "SKIPPED (no source file): "
+                prefix = f"{'SKIPPED (no source file)':<{width}}: "
             elif from_path.is_dir():
                 if not to_path.exists():
                     # Only create directory; don't populate it
                     to_path.mkdir(parents=True)
-                    prefix = "MAKE DIR          : "
+                    prefix = f"{'MAKE DIR':<{width}}: "
                 else:
-                    prefix = "UP-TO-DATE(dir)   : "
+                    prefix = f"{'UP-TO-DATE(dir)':<{width}}: "
             elif config is None:
                 if not to_path.exists():
                     if not to_path.parent.exists():
                         to_path.parent.mkdir(parents=True)
                     shutil.copyfile(from_path, to_path)  # This is always a wholesale COPY, not update/merge.
-                    prefix = "COPY              : "
+                    prefix = f"{'COPY':<{width}}: "
                 elif not filecmp.cmp(from_path, to_path):  # OUT OF DATE
                     update.write_precursors_and_updated_file(strategy, from_path, to_path)
-                    prefix = "UPDATE            : "
+                    prefix = f"{'UPDATE':<{width}}: "
                 else:
-                    prefix = "UP-TO-DATE(file)  : "
+                    prefix = f"{'UP-TO-DATE(file)':<{width}}: "
             else:  # If you give this function a config, it's because it contains template params
                 template = None
                 with open(from_path, "r") as fid:
@@ -179,19 +175,19 @@ class GeneratedProject(ABC):
                 if to_path.exists():
                     with open(to_path, "r") as existing:
                         if existing.read() == out:
-                            prefix = "UP-TO-DATE        : "
+                            prefix = f"{'UP-TO-DATE(file)':<{width}}: "
                         else:  # OUT OF DATE
                             update.write_precursors_and_updated_file(strategy, from_path, to_path, out)
-                            prefix = "UPDATE            : "
+                            prefix = f"{'UPDATE':<{width}}: "
                 else:  # File didn't exist, create (render)
                     with open(to_path, "w") as fid:
                         fid.write(out)
-                    prefix = "RENDER            : "
+                    prefix = f"{'RENDER':<{width}}: "
         elif config is None:
-            prefix = "DRY-RUN(copy)     : "
+            prefix = f"{'DRY-RUN(copy)':<{width}}: "
         else:
-            prefix = "DRY-RUN(render)   : "
-        return f"{prefix}{from_path} => {to_path}"  # TODO User shouldn't have to care about the from_path.
+            prefix = f"{'DRY-RUN(render)':<{width}}: "
+        return f"{prefix}{to_path}"
 
     def _is_git_repo(self) -> bool:
         cmd = [
@@ -217,9 +213,7 @@ class GeneratedProject(ABC):
             [
                 {
                     "dir": Path(self.target_dir),
-                    "cmds": [
-                        "git init --initial-branch=main",
-                    ],
+                    "cmds": ["git init --initial-branch=main", "git add .", 'git commit -m "Initial commit"'],
                 }
             ]
             if not self._is_git_repo()
@@ -265,28 +259,30 @@ class GeneratedCPP(GeneratedProject):
         """_summary_"""
         result: list[str] = []
         self._check_directories(project_path)
-        for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
-            result.append(
-                self._process_single_file(
-                    f.from_path,
-                    f.to_path,
-                    self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
-                    None,
-                    f.onetime,
-                    dry_run,
-                )
-            )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
-            result.append(
-                self._process_single_file(
-                    f.from_path,
-                    f.to_path,
-                    self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
-                    self.configuration,
-                    f.onetime,
-                    dry_run,
+            if f.to_path.resolve() not in self.do_not_update:
+                update_type = "txt"  # TODO: robustify default
+                for file_type in f.from_path.suffixes:
+                    if file_type.lstrip(".") in self.manifest["update-strategies"]:
+                        update_type = self.manifest["update-strategies"][file_type.lstrip(".")]
+                result.append(
+                    self._process_single_file(
+                        f.from_path, f.to_path, update_type, self.configuration, f.onetime, dry_run
+                    )
                 )
-            )
+        for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
+            print(f.from_path, f.to_path)
+            if f.to_path.resolve() not in self.do_not_update:
+                result.append(
+                    self._process_single_file(
+                        f.from_path,
+                        f.to_path,
+                        self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
+                        None,
+                        f.onetime,
+                        dry_run,
+                    )
+                )
 
         return result
 
@@ -330,13 +326,17 @@ class GeneratedPython(GeneratedProject):
 
         super().__init__(project_path, project_name, force)
 
+        self.configuration["package_name"] = f"{underscore(self.configuration['project_name'])}"
+
     def generate(self, project_path: Path, dry_run: bool = False) -> list[str]:
         """_summary_"""
         result: list[str] = []
         self._check_directories(project_path)
         # Generate a package folder with the same name as the project
         for f in core.collect_source_files(
-            self.source_data_dir, self.target_dir, [{"from": "", "to": f"{self.configuration['project_name']}"}]
+            self.source_data_dir,
+            self.target_dir,
+            [{"from": "", "to": f"{underscore(self.configuration['project_name'])}"}],
         ):
             result.append(
                 self._process_single_file(
@@ -348,28 +348,31 @@ class GeneratedPython(GeneratedProject):
                     dry_run,
                 )
             )
+        # TODO: Add __init__.py under project directory
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
-            result.append(
-                self._process_single_file(
-                    f.from_path,
-                    f.to_path,
-                    self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
-                    None,
-                    f.onetime,
-                    dry_run,
+            if f.to_path.resolve() not in self.do_not_update:
+                result.append(
+                    self._process_single_file(
+                        f.from_path,
+                        f.to_path,
+                        self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
+                        None,
+                        f.onetime,
+                        dry_run,
+                    )
                 )
-            )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
-            result.append(
-                self._process_single_file(
-                    f.from_path,
-                    f.to_path,
-                    self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
-                    self.configuration,
-                    f.onetime,
-                    dry_run,
+            if f.to_path.resolve() not in self.do_not_update:
+                result.append(
+                    self._process_single_file(
+                        f.from_path,
+                        f.to_path,
+                        self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
+                        self.configuration,
+                        f.onetime,
+                        dry_run,
+                    )
                 )
-            )
         return result
 
     def init_pre_commit(self) -> list:
