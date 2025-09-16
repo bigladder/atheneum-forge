@@ -290,12 +290,12 @@ class GeneratedCPP(GeneratedProject):
         Return the list of commands required to initialize the pre-commit tool.
         """
         return [
-            {
-                "dir": Path(self.target_dir),
-                "cmds": [
-                    "uvx pre-commit install",
-                ],
-            }
+            # {
+            #     "dir": Path(self.target_dir),
+            #     "cmds": [
+            #         "uvx pre-commit install",
+            #     ],
+            # }
         ]
 
     def init_submodules(self) -> list:
