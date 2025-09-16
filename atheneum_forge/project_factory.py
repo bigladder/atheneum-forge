@@ -271,7 +271,6 @@ class GeneratedCPP(GeneratedProject):
                     )
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
-            print(f.from_path, f.to_path)
             if f.to_path.resolve() not in self.do_not_update:
                 result.append(
                     self._process_single_file(
@@ -301,7 +300,7 @@ class GeneratedCPP(GeneratedProject):
 
     def init_submodules(self) -> list:
         """Return the commands to initialize git submodules."""
-        return core.setup_vendor(self.configuration, self.source_data_dir.parent)
+        return core.setup_vendor(self.configuration, self.target_dir)
 
 
 class GeneratedPython(GeneratedProject):
