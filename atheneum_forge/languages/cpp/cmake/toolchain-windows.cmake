@@ -8,7 +8,8 @@ if(CMAKE_SYSTEM_NAME STREQUAL Windows)
     set(CMAKE_GENERATOR_PLATFORM version=10.0.26100)
 
     # Set the platform toolset (e.g., v143 for Visual Studio 2022)
+    # Note: v142 supports a "version" keyword; v143 no longer does
     set(CMAKE_GENERATOR_TOOLSET "v143")
-    set(VS_PLATFORM_TOOLSET_VERSION "14.31.31103")
+    set(REQUESTED_CPP_COMPLIER_VERSION "19.44.35213.0" CACHE INTERNAL "")
 
 endif()

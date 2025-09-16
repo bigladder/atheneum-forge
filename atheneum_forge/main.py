@@ -147,6 +147,18 @@ def initialize_configuration(  # noqa: PLR0913
         raise typer.Exit(code=1)
 
 
+@app.command("update")
+def update_project_files(
+    project_path: Annotated[Path, typer.Argument(help="Directory location of the project.")],
+) -> None:
+    """Shorthand command that calls generate under the hood.
+
+    Args:
+        project_path
+    """
+    return generate_project_files(project_path, False, False, None)
+
+
 # @app.command()
 # def update_copyright(config_path: Path, project_type: str, silent: bool = False) -> None:
 #     """

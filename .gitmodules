@@ -1,6 +1,6 @@
 [submodule "atheneum_forge/data/vendor/fmt"]
-	path = atheneum_forge/data/vendor/fmt
+	path = atheneum_forge/languages/vendor/fmt
 	url = https://github.com/fmtlib/fmt.git
 [submodule "atheneum_forge/data/vendor/googletest"]
-	path = atheneum_forge/data/vendor/googletest
+	path = atheneum_forge/languages/vendor/googletest
 	url = https://github.com/google/googletest.git

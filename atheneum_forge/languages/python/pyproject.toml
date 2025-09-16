@@ -2,7 +2,7 @@
 name = "{{ project_name }}"
 version = "0.1.0"
 description = "Add your description here"
-requires-python = "~=3.10"
+requires-python = ">=3.10"
 readme = "README.md"
 dependencies = []
 

@@ -10,7 +10,7 @@ from subprocess import CalledProcessError
 from . import core, update
 
 THIS_DIR = Path(__file__).resolve().parent
-DATA_DIR = (THIS_DIR / "data").resolve()
+DATA_DIR = (THIS_DIR / "languages").resolve()
 FORGE_CONFIG = "forge.toml"
 
 

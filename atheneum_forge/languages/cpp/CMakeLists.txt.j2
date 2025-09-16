@@ -17,6 +17,17 @@ project({{ project_name | lower }}
 set(CMAKE_CXX_STANDARD {{ cpp_std }})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+if (NOT REQUESTED_CPP_COMPLIER_VERSION VERSION_EQUAL CMAKE_CXX_COMPILER_VERSION)
+    if (STRICT_VERSION)
+        message(FATAL_ERROR "\nRequested compiler ${REQUESTED_CPP_COMPLIER_VERSION} is not available. "
+        "Please install it using the Visual Studio Installer, or select an available toolset compiler "
+        "in the toolchain file."
+        )
+    else()
+        message(WARNING "\nBuild will use compiler version ${CMAKE_CXX_COMPILER_VERSION} even though ${REQUESTED_CPP_COMPLIER_VERSION} was requested.")
+    endif()
+endif()
+
 # Set a default build type if none was specified
 if (NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     message(STATUS "Setting build type to 'Release' as none was specified.")
