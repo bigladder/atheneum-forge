@@ -334,13 +334,13 @@ def test_gen_copyright():
     start_year = 2020
     params = {"year": year, "start_year": start_year}
     all_files = {
-        "README.md",
-        "src/a.cpp",
-        "src/b.cpp",
-        "src/c.cpp",
-        "src/hidden.h",
-        "app/abc.cpp",
-        "include/abc/abc.h",
+        Path("README.md"),
+        Path("src/a.cpp"),
+        Path("src/b.cpp"),
+        Path("src/c.cpp"),
+        Path("src/hidden.h"),
+        Path("app/abc.cpp"),
+        Path("include/abc/abc.h"),
     }
     expected_copy = f"// COPYRIGHT (C) {start_year}-{year} US"
     expected = {
@@ -353,6 +353,25 @@ def test_gen_copyright():
     }
     actual = af.gen_copyright(params, copy_template, all_files)
     assert actual == expected
+
+
+def test_render_copyright_template():
+    year = datetime.now().year
+    start_year = 2020
+    name_of_copyright_holder = "Big Ladder Software"
+    contact = "info@bigladdersoftware.com"
+    SPDX_license_name = "BSD-3-Clause"
+    params = {
+        "year": year,
+        "start_year": start_year,
+        "name_of_copyright_holder": name_of_copyright_holder,
+        "contact": contact,
+        "SPDX_license_name": SPDX_license_name,
+    }
+    filename = Path("src/a.cpp")
+    expected_copy = f"// SPDX-FileCopyrightText: © {start_year} {name_of_copyright_holder} <{contact}>\r// SPDX-License-Identifier: {SPDX_license_name}"  # noqa: E501
+    actual = af.render_copyright_string(params, filename)
+    assert actual == expected_copy
 
 
 def test_update_copyright():

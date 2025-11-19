@@ -1,7 +1,6 @@
 import filecmp
 import logging
 import re
-import shutil
 from abc import ABC, abstractmethod
 from enum import Enum
 from pathlib import Path
@@ -124,8 +123,15 @@ class GeneratedProject(ABC):
         if not configuration_file.is_file():
             raise FileNotFoundError(f'Config "{configuration_file}" is not a file.')
 
-    def _process_single_file(  # noqa: PLR0912
-        self, from_path: Path, to_path: Path, strategy: str, config: dict | None, onetime: bool, dry_run: bool
+    def _process_single_file(  # noqa: PLR0912, PLR0913, PLR0915
+        self,
+        from_path: Path,
+        to_path: Path,
+        copyright_text: str,
+        strategy: str,
+        config: dict | None,
+        onetime: bool,
+        dry_run: bool,
     ) -> str:
         """Process a single file from from_path to to_path: copy, update, render, or skip.
 
@@ -158,7 +164,13 @@ class GeneratedProject(ABC):
                 if not to_path.exists():
                     if not to_path.parent.exists():
                         to_path.parent.mkdir(parents=True)
-                    shutil.copyfile(from_path, to_path)  # This is always a wholesale COPY, not update/merge.
+                        # prepend the copyright text to from_path text
+                        with open(from_path, "r", encoding="utf-8") as from_file:
+                            contents = from_file.read()
+                            with open(to_path, "w", encoding="utf-8") as to_file:
+                                to_file.write(copyright_text)
+                                to_file.write(contents)
+                    # shutil.copyfile(from_path, to_path) # This is always a wholesale COPY, not update/merge.
                     prefix = f"{'COPY':<{width}}: "
                 elif not filecmp.cmp(from_path, to_path):  # OUT OF DATE
                     update.write_precursors_and_updated_file(strategy, from_path, to_path)
@@ -167,20 +179,21 @@ class GeneratedProject(ABC):
                     prefix = f"{'UP-TO-DATE(file)':<{width}}: "
             else:  # If you give this function a config, it's because it contains template params
                 template = None
-                with open(from_path, "r") as fid:
+                with open(from_path, "r", encoding="utf-8") as fid:
                     template = fid.read()
-                out = core.render(template, config)  # Render template using config
+                out = copyright_text + core.render(template, config)  # Render template using config
                 if not to_path.parent.exists():
                     to_path.parent.mkdir(parents=True, exist_ok=True)
                 if to_path.exists():
-                    with open(to_path, "r") as existing:
+                    with open(to_path, "r", encoding="utf-8") as existing:
                         if existing.read() == out:
                             prefix = f"{'UP-TO-DATE(file)':<{width}}: "
                         else:  # OUT OF DATE
                             update.write_precursors_and_updated_file(strategy, from_path, to_path, out)
                             prefix = f"{'UPDATE':<{width}}: "
                 else:  # File didn't exist, create (render)
-                    with open(to_path, "w") as fid:
+                    with open(to_path, "w", encoding="utf-8") as fid:
+                        fid.write(copyright_text)
                         fid.write(out)
                     prefix = f"{'RENDER':<{width}}: "
         elif config is None:
@@ -265,17 +278,20 @@ class GeneratedCPP(GeneratedProject):
                 for file_type in f.from_path.suffixes:
                     if file_type.lstrip(".") in self.manifest["update-strategies"]:
                         update_type = self.manifest["update-strategies"][file_type.lstrip(".")]
+                copyright_text = core.render_copyright_string(self.configuration, f.to_path)
                 result.append(
                     self._process_single_file(
-                        f.from_path, f.to_path, update_type, self.configuration, f.onetime, dry_run
+                        f.from_path, f.to_path, copyright_text, update_type, self.configuration, f.onetime, dry_run
                     )
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
+                copyright_text = core.render_copyright_string(self.configuration, f.to_path)
                 result.append(
                     self._process_single_file(
                         f.from_path,
                         f.to_path,
+                        copyright_text,
                         self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
                         None,
                         f.onetime,
@@ -341,6 +357,7 @@ class GeneratedPython(GeneratedProject):
                 self._process_single_file(
                     f.from_path,
                     f.to_path,
+                    "",
                     self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
                     None,
                     f.onetime,
@@ -350,10 +367,12 @@ class GeneratedPython(GeneratedProject):
         # TODO: Add __init__.py under project directory
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
+                copyright_text = core.render_copyright_string(self.configuration, f.to_path)
                 result.append(
                     self._process_single_file(
                         f.from_path,
                         f.to_path,
+                        copyright_text,
                         self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
                         None,
                         f.onetime,
@@ -362,10 +381,12 @@ class GeneratedPython(GeneratedProject):
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
             if f.to_path.resolve() not in self.do_not_update:
+                copyright_text = core.render_copyright_string(self.configuration, f.to_path)
                 result.append(
                     self._process_single_file(
                         f.from_path,
                         f.to_path,
+                        copyright_text,
                         self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
                         self.configuration,
                         f.onetime,

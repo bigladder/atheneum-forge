@@ -23,6 +23,11 @@ DEFAULT_LINE_COMMENTS_BY_EXT = {
     "CMakeLists.txt": "# ",
     "*.py": "# ",
 }
+LINE_COMMENTS_BY_EXT = {
+    ".cpp": "// ",
+    ".h": "// ",
+    ".py": "# ",
+}
 
 
 def render(template: str, config: dict) -> str:
@@ -412,7 +417,7 @@ def run_commands(commands: list) -> None:
             log.info(result.stdout)  # Only reached if success code (0) returned
 
 
-def gen_copyright(config: dict, copy_template: str, all_files: set) -> dict:
+def gen_copyright(config: dict, copy_template: str, all_files: set[Path]) -> dict:
     """
     Generate copyright headers for the file tree.
     """
@@ -424,6 +429,22 @@ def gen_copyright(config: dict, copy_template: str, all_files: set) -> dict:
             if PurePath(file_name).match(match_str):
                 result[file_name] = list(map(lambda line: prefix + line, copy_lines))
     return result
+
+
+def render_copyright_string(config: dict, for_file: Path) -> str:
+    """
+    Generate copyright headers for the single file.
+    """
+    copyright_template_file = Path(__file__).parent / "copyright.j2"
+    with open(copyright_template_file, "r", encoding="utf-8") as cr_text:
+        template = cr_text.read()
+    copy = render(template, config)
+    copy_lines = copy.splitlines()
+    for file_suffix, comment in LINE_COMMENTS_BY_EXT.items():
+        if PurePath(for_file).suffix == file_suffix:
+            result = list(map(lambda line: comment + line, copy_lines))
+            return "\r".join(result)
+    return ""
 
 
 def update_copyright(file_content: str, copy_lines: list) -> str:
