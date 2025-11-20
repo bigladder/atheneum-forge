@@ -1,6 +1,7 @@
 import logging
 import re
 import subprocess
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePath
@@ -8,7 +9,7 @@ from typing import Any
 
 import tomli_w
 import tomllib
-from jinja2 import Template
+from jinja2 import Environment, Template
 
 log = logging.getLogger("rich")
 
@@ -23,11 +24,7 @@ DEFAULT_LINE_COMMENTS_BY_EXT = {
     "CMakeLists.txt": "# ",
     "*.py": "# ",
 }
-LINE_COMMENTS_BY_EXT = {
-    ".cpp": "// ",
-    ".h": "// ",
-    ".py": "# ",
-}
+LINE_COMMENTS_BY_EXT = defaultdict(lambda: "# ", {".cpp": "// ", ".h": "// ", ".py": "# "})
 
 
 def render(template: str, config: dict) -> str:
@@ -431,20 +428,14 @@ def gen_copyright(config: dict, copy_template: str, all_files: set[Path]) -> dic
     return result
 
 
-def render_copyright_string(config: dict, for_file: Path) -> str:
+def render_copyright_string(environment: Environment, config: dict, for_file: Path) -> str:
     """
     Generate copyright headers for the single file.
     """
-    copyright_template_file = Path(__file__).parent / "copyright.j2"
-    with open(copyright_template_file, "r", encoding="utf-8") as cr_text:
-        template = cr_text.read()
-    copy = render(template, config)
-    copy_lines = copy.splitlines()
-    for file_suffix, comment in LINE_COMMENTS_BY_EXT.items():
-        if PurePath(for_file).suffix == file_suffix:
-            result = list(map(lambda line: comment + line, copy_lines))
-            return "\r".join(result)
-    return ""
+    copyright_template_file = "copyright.j2"
+    template = environment.get_template(copyright_template_file)
+    config.update({"comment_characters": LINE_COMMENTS_BY_EXT[PurePath(for_file).suffix]})
+    return template.render(config)
 
 
 def update_copyright(file_content: str, copy_lines: list) -> str:

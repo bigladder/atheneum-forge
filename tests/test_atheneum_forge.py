@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path, PurePath
 
 import tomllib
+from jinja2 import Environment, FileSystemLoader
 
 import atheneum_forge.core as af
 
@@ -369,8 +370,11 @@ def test_render_copyright_template():
         "SPDX_license_name": SPDX_license_name,
     }
     filename = Path("src/a.cpp")
-    expected_copy = f"// SPDX-FileCopyrightText: © {start_year} {name_of_copyright_holder} <{contact}>\r// SPDX-License-Identifier: {SPDX_license_name}"  # noqa: E501
-    actual = af.render_copyright_string(params, filename)
+    expected_copy = f"// SPDX-FileCopyrightText: © {start_year} {name_of_copyright_holder} <{contact}>\n// SPDX-License-Identifier: {SPDX_license_name}\n"  # noqa: E501
+    environment = Environment(
+        loader=FileSystemLoader(Path(__file__).parent.parent / "atheneum_forge"), keep_trailing_newline=True
+    )
+    actual = af.render_copyright_string(environment, params, filename)
     assert actual == expected_copy
 
 

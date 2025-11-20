@@ -6,6 +6,8 @@ from enum import Enum
 from pathlib import Path
 from subprocess import CalledProcessError
 
+from jinja2 import Environment, FileSystemLoader
+
 from . import core, update
 
 THIS_DIR = Path(__file__).resolve().parent
@@ -73,6 +75,11 @@ class GeneratedProject(ABC):
 
         configuration_file = self.target_dir / FORGE_CONFIG
 
+        # Set up the template environment with all the possible template-containing folders
+        template_files = core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"])
+        template_directories = [Path(__file__).parent] + [template.from_path.parent for template in template_files]
+        self.environment = Environment(loader=FileSystemLoader(template_directories), keep_trailing_newline=True)
+
         if not project_name:  # Assume configuration toml exists, find name there
             if not configuration_file.exists():
                 raise FileNotFoundError(
@@ -138,6 +145,8 @@ class GeneratedProject(ABC):
         Args:
             from_path (Path): path to a file to reference from
             to_path (Path): path to a file to generate/update
+            copyright_text (str):
+            stragety (str):
             config (dict | None): dict of parameters or None. If a dict, treat from_path as template.
             onetime (bool): if True do not regenerate if to_path exists
             dry_run (bool): if True, do a dry run. Don't actually update/generate.
@@ -178,10 +187,7 @@ class GeneratedProject(ABC):
                 else:
                     prefix = f"{'UP-TO-DATE(file)':<{width}}: "
             else:  # If you give this function a config, it's because it contains template params
-                template = None
-                with open(from_path, "r", encoding="utf-8") as fid:
-                    template = fid.read()
-                out = copyright_text + core.render(template, config)  # Render template using config
+                out = copyright_text + self.environment.get_template(from_path.name).render(config)
                 if not to_path.parent.exists():
                     to_path.parent.mkdir(parents=True, exist_ok=True)
                 if to_path.exists():
@@ -193,7 +199,6 @@ class GeneratedProject(ABC):
                             prefix = f"{'UPDATE':<{width}}: "
                 else:  # File didn't exist, create (render)
                     with open(to_path, "w", encoding="utf-8") as fid:
-                        fid.write(copyright_text)
                         fid.write(out)
                     prefix = f"{'RENDER':<{width}}: "
         elif config is None:
@@ -278,7 +283,7 @@ class GeneratedCPP(GeneratedProject):
                 for file_type in f.from_path.suffixes:
                     if file_type.lstrip(".") in self.manifest["update-strategies"]:
                         update_type = self.manifest["update-strategies"][file_type.lstrip(".")]
-                copyright_text = core.render_copyright_string(self.configuration, f.to_path)
+                copyright_text = core.render_copyright_string(self.environment, self.configuration, f.to_path)
                 result.append(
                     self._process_single_file(
                         f.from_path, f.to_path, copyright_text, update_type, self.configuration, f.onetime, dry_run
@@ -286,7 +291,7 @@ class GeneratedCPP(GeneratedProject):
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
-                copyright_text = core.render_copyright_string(self.configuration, f.to_path)
+                copyright_text = core.render_copyright_string(self.environment, self.configuration, f.to_path)
                 result.append(
                     self._process_single_file(
                         f.from_path,
@@ -367,7 +372,7 @@ class GeneratedPython(GeneratedProject):
         # TODO: Add __init__.py under project directory
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
-                copyright_text = core.render_copyright_string(self.configuration, f.to_path)
+                copyright_text = core.render_copyright_string(self.environment, self.configuration, f.to_path)
                 result.append(
                     self._process_single_file(
                         f.from_path,
@@ -381,7 +386,7 @@ class GeneratedPython(GeneratedProject):
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
             if f.to_path.resolve() not in self.do_not_update:
-                copyright_text = core.render_copyright_string(self.configuration, f.to_path)
+                copyright_text = core.render_copyright_string(self.environment, self.configuration, f.to_path)
                 result.append(
                     self._process_single_file(
                         f.from_path,

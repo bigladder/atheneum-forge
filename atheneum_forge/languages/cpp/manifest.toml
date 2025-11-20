@@ -11,14 +11,14 @@ static = [
   {from="CMakePresets.json", to="."}
 ]
 template = [
-  {from="CMakeLists.txt.j2", to=".", oname="CMakeLists.txt"},
+  {from="main_CMakeLists.txt.j2", to=".", oname="CMakeLists.txt"},
   {from="LICENSE.txt.j2", to=".", onetime=true, oname="LICENSE.txt"},
   {from="README.md.j2", to=".", onetime=true, oname="README.md"},
-  {from="src/CMakeLists.txt.j2", to="src/.", oname="CMakeLists.txt"},
-  {from="vendor/CMakeLists.txt.j2", to="vendor/.", oname="CMakeLists.txt"},
-  {from="test/CMakeLists.txt.j2", to="test/.", oname="CMakeLists.txt"},
+  {from="src/src_CMakeLists.txt.j2", to="src/.", oname="CMakeLists.txt"},
+  {from="vendor/vendor_CMakeLists.txt.j2", to="vendor/.", oname="CMakeLists.txt"},
+  {from="test/test_CMakeLists.txt.j2", to="test/.", oname="CMakeLists.txt"},
   {from="Dockerfile.format.j2", to=".", oname="Dockerfile.format"},
-  {from="app/CMakeLists.txt.j2", to="app/.", oname="CMakeLists.txt", if="use_app"},
+  {from="app/app_CMakeLists.txt.j2", to="app/.", oname="CMakeLists.txt", if="use_app"},
   {from=".github/workflows/clang-format-check.yml.j2", to=".github/workflows/.", oname="clang-format-check.yml"},
   {from="Taskfile.yml.j2", to=".", onetime=true, oname="Taskfile.yml", if="use_taskfile"},
   {from=".clang-tidy.j2", to=".", oname=".clang-tidy"},
