@@ -61,7 +61,6 @@ target_link_options(${PROJECT_NAME}_build_options INTERFACE
 if (${PROJECT_NAME}_IS_TOP_LEVEL)
     # Remove unwanted CMake defaults from global flags
     if (MSVC)
-        include(toolchain.windows)
         # See https://gitlab.kitware.com/cmake/cmake/-/blob/master/Modules/Platform/Windows-MSVC.cmake
         set(CMAKE_CXX_FLAGS
                 /EHsc         #*Specifies the model of exception handling (sc options).

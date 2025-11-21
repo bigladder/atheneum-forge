@@ -7,7 +7,8 @@ static = [
   {from=".github/workflows/clang-tidy-check.yml", to=".github/workflows/."},
   {from=".github/workflows/doxygen-completeness-check.yml", to=".github/workflows/."},
   {from="", to="include", onetime=true},
-  {from="", to="doc", onetime=true}
+  {from="", to="doc", onetime=true},
+  {from="CMakePresets.json", to="."}
 ]
 template = [
   {from="CMakeLists.txt.j2", to=".", oname="CMakeLists.txt"},

@@ -3,7 +3,7 @@ name = "atheneum-forge"
 version = "0.1.0"
 description = "Project boilerplate and build system scaffolding generation and maintenance."
 authors = [{ name = "Big Ladder Software", email = "info@bigladdersoftware.com" }]
-requires-python = "~=3.10"
+requires-python = ">=3.10"
 readme = "README.md"
 dependencies = [
     "jinja2>=3.1.4,<4",
@@ -47,9 +47,10 @@ max-args = 6
 disallow_incomplete_defs = true
 no_implicit_optional = true
 check_untyped_defs = true
+exclude = "atheneum_forge/languages/vendor/"
 
 [[tool.mypy.overrides]]
-module = "lattice.*"
+module = "atheneum_forge.*"
 disable_error_code = ["annotation-unchecked","import"]
 
 [build-system]

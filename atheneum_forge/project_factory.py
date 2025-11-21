@@ -10,7 +10,7 @@ from subprocess import CalledProcessError
 from . import core, update
 
 THIS_DIR = Path(__file__).resolve().parent
-DATA_DIR = (THIS_DIR / "data").resolve()
+DATA_DIR = (THIS_DIR / "languages").resolve()
 FORGE_CONFIG = "forge.toml"
 
 
@@ -271,7 +271,6 @@ class GeneratedCPP(GeneratedProject):
                     )
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
-            print(f.from_path, f.to_path)
             if f.to_path.resolve() not in self.do_not_update:
                 result.append(
                     self._process_single_file(
@@ -291,17 +290,17 @@ class GeneratedCPP(GeneratedProject):
         Return the list of commands required to initialize the pre-commit tool.
         """
         return [
-            {
-                "dir": Path(self.target_dir),
-                "cmds": [
-                    "uvx pre-commit install",
-                ],
-            }
+            # {
+            #     "dir": Path(self.target_dir),
+            #     "cmds": [
+            #         "uvx pre-commit install",
+            #     ],
+            # }
         ]
 
     def init_submodules(self) -> list:
         """Return the commands to initialize git submodules."""
-        return core.setup_vendor(self.configuration, self.source_data_dir.parent)
+        return core.setup_vendor(self.configuration, self.target_dir)
 
 
 class GeneratedPython(GeneratedProject):
