@@ -24,7 +24,7 @@ DEFAULT_LINE_COMMENTS_BY_EXT = {
     "CMakeLists.txt": "# ",
     "*.py": "# ",
 }
-LINE_COMMENTS_BY_EXT = defaultdict(lambda: "# ", {".cpp": "// ", ".h": "// ", ".py": "# "})
+LINE_COMMENTS_BY_EXT = defaultdict(lambda: "#", {".cpp": "//", ".h": "//", ".py": "#"})
 
 
 def render(template: str, config: dict) -> str:
@@ -78,6 +78,7 @@ class ProjectFile:
     from_path: Path
     to_path: Path
     onetime: bool
+    add_copyright: bool
 
 
 def collect_source_files(source_directory: Path, target_directory: Path, file_directives: list) -> list[ProjectFile]:
@@ -95,6 +96,7 @@ def collect_source_files(source_directory: Path, target_directory: Path, file_di
 
     for f in file_directives:
         onetime = f.get("onetime", False)
+        add_copyright = f.get("add_copyright", False)
 
         to_path_with_glob = build_path(target_directory, f["to"])
         if to_path_with_glob["glob"] is not None:  # TODO: Errors in the manifest shouldn't read out to the user!
@@ -121,7 +123,7 @@ def collect_source_files(source_directory: Path, target_directory: Path, file_di
             else:
                 # Single file output, same name
                 to_name = to_path / from_path.name
-            project_files.append(ProjectFile(from_path, to_name, onetime))
+            project_files.append(ProjectFile(from_path, to_name, onetime, add_copyright))
         else:
             if not to_path.exists():
                 to_path.mkdir(parents=True, exist_ok=True)
@@ -129,7 +131,7 @@ def collect_source_files(source_directory: Path, target_directory: Path, file_di
             for fpath in from_path.glob(glob):
                 if fpath.is_dir():
                     continue
-                project_files.append(ProjectFile(fpath, to_path / fpath.name, onetime))
+                project_files.append(ProjectFile(fpath, to_path / fpath.name, onetime, add_copyright))
     return project_files
 
 
@@ -436,6 +438,24 @@ def render_copyright_string(environment: Environment, config: dict, for_file: Pa
     template = environment.get_template(copyright_template_file)
     config.update({"comment_characters": LINE_COMMENTS_BY_EXT[PurePath(for_file).suffix]})
     return template.render(config)
+
+
+def prepend_copyright_to_copy(from_path, copyright_text):
+    copyright_indicators = ["Copyright", "copyright", "(C)", "(c)", "©"]
+    already_copyrighted = False
+    with open(from_path, "r", encoding="utf-8") as from_file:
+        # Allow copyright information from the first two lines
+        head = [next(from_file) for _ in range(2)]
+        for line in head:
+            already_copyrighted = any(c in line for c in copyright_indicators)
+            if already_copyrighted:
+                break
+    with open(from_path, "r+", encoding="utf-8") as f:
+        contents = f.read()
+        f.seek(0)
+        if not already_copyrighted:
+            f.write(copyright_text)
+        f.write(contents)
 
 
 def update_copyright(file_content: str, copy_lines: list) -> str:

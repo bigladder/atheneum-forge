@@ -173,13 +173,8 @@ class GeneratedProject(ABC):
                 if not to_path.exists():
                     if not to_path.parent.exists():
                         to_path.parent.mkdir(parents=True)
-                        # prepend the copyright text to from_path text
-                        with open(from_path, "r", encoding="utf-8") as from_file:
-                            contents = from_file.read()
-                            with open(to_path, "w", encoding="utf-8") as to_file:
-                                to_file.write(copyright_text)
-                                to_file.write(contents)
-                    # shutil.copyfile(from_path, to_path) # This is always a wholesale COPY, not update/merge.
+                    # This is always a wholesale COPY, not update/merge.
+                    core.prepend_copyright_to_copy(from_path, copyright_text)
                     prefix = f"{'COPY':<{width}}: "
                 elif not filecmp.cmp(from_path, to_path):  # OUT OF DATE
                     update.write_precursors_and_updated_file(strategy, from_path, to_path)
@@ -283,7 +278,11 @@ class GeneratedCPP(GeneratedProject):
                 for file_type in f.from_path.suffixes:
                     if file_type.lstrip(".") in self.manifest["update-strategies"]:
                         update_type = self.manifest["update-strategies"][file_type.lstrip(".")]
-                copyright_text = core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                copyright_text = (
+                    core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                    if f.add_copyright
+                    else ""
+                )
                 result.append(
                     self._process_single_file(
                         f.from_path, f.to_path, copyright_text, update_type, self.configuration, f.onetime, dry_run
@@ -291,7 +290,11 @@ class GeneratedCPP(GeneratedProject):
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
-                copyright_text = core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                copyright_text = (
+                    core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                    if f.add_copyright
+                    else ""
+                )
                 result.append(
                     self._process_single_file(
                         f.from_path,
@@ -372,7 +375,11 @@ class GeneratedPython(GeneratedProject):
         # TODO: Add __init__.py under project directory
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
-                copyright_text = core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                copyright_text = (
+                    core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                    if f.add_copyright
+                    else ""
+                )
                 result.append(
                     self._process_single_file(
                         f.from_path,
@@ -386,7 +393,11 @@ class GeneratedPython(GeneratedProject):
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
             if f.to_path.resolve() not in self.do_not_update:
-                copyright_text = core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                copyright_text = (
+                    core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                    if f.add_copyright
+                    else ""
+                )
                 result.append(
                     self._process_single_file(
                         f.from_path,

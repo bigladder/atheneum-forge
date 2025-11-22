@@ -1,4 +1,3 @@
-# Copyright (c) 2020-2024 Big Ladder Software LLC. All rights reserved.
 # See the LICENSE.txt file for additional terms and conditions.
 # Adapted from https://jonathanhamberg.com/post/cmake-embedding-git-hash/
 execute_process(

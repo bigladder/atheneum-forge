@@ -1,5 +1,13 @@
 static = [
-  {from="cmake/*", to="cmake/."},
+  {from="cmake/build-options-interface.cmake", to="cmake/.", add_copyright=true},
+  {from="cmake/get-git-hash.cmake", to="cmake/.", add_copyright=true},
+  {from="cmake/git-versioning.cmake", to="cmake/.", add_copyright=true},
+  {from="cmake/initialize-submodules.cmake", to="cmake/.", add_copyright=true},
+  {from="cmake/toolchain-windows.cmake", to="cmake/.", add_copyright=true},
+  {from="cmake/Findcodecov.cmake", to="cmake/."},
+  {from="cmake/FindGcov.cmake", to="cmake/."},
+  {from="cmake/FindLcov.cmake", to="cmake/."},
+  {from="cmake/llvm-cov-wrapper.cmake", to="cmake/."},
   {from=".clang-format", to="."},
   {from=".gitignore", to=".", onetime=true},
   {from=".github/*", to=".github/."},
@@ -11,14 +19,14 @@ static = [
   {from="CMakePresets.json", to="."}
 ]
 template = [
-  {from="main_CMakeLists.txt.j2", to=".", oname="CMakeLists.txt"},
-  {from="LICENSE.txt.j2", to=".", onetime=true, oname="LICENSE.txt"},
-  {from="README.md.j2", to=".", onetime=true, oname="README.md"},
-  {from="src/src_CMakeLists.txt.j2", to="src/.", oname="CMakeLists.txt"},
-  {from="vendor/vendor_CMakeLists.txt.j2", to="vendor/.", oname="CMakeLists.txt"},
-  {from="test/test_CMakeLists.txt.j2", to="test/.", oname="CMakeLists.txt"},
+  {from="main_CMakeLists.txt.j2", to=".", oname="CMakeLists.txt", add_copyright=true},
+  {from="LICENSE.txt", to=".", onetime=true, oname="LICENSE.txt", add_copyright=true},
+  {from="README.md.j2", to=".", onetime=true, oname="README.md", add_copyright=true},
+  {from="src/src_CMakeLists.txt.j2", to="src/.", oname="CMakeLists.txt", add_copyright=true},
+  {from="vendor/vendor_CMakeLists.txt.j2", to="vendor/.", oname="CMakeLists.txt", add_copyright=true},
+  {from="test/test_CMakeLists.txt.j2", to="test/.", oname="CMakeLists.txt", add_copyright=true},
   {from="Dockerfile.format.j2", to=".", oname="Dockerfile.format"},
-  {from="app/app_CMakeLists.txt.j2", to="app/.", oname="CMakeLists.txt", if="use_app"},
+  {from="app/app_CMakeLists.txt.j2", to="app/.", oname="CMakeLists.txt", if="use_app", add_copyright=true},
   {from=".github/workflows/clang-format-check.yml.j2", to=".github/workflows/.", oname="clang-format-check.yml"},
   {from="Taskfile.yml.j2", to=".", onetime=true, oname="Taskfile.yml", if="use_taskfile"},
   {from=".clang-tidy.j2", to=".", oname=".clang-tidy"},
@@ -36,7 +44,7 @@ headers_private = {type="str:glob", default="src/[a-zA-Z]*.h", private=true}
 headers_public = {type="str:glob", default="include/**/[a-zA-Z]*.h", private=true}
 project_type = {type="str", default="cpp", required=true}
 project_short_description = {type="str", default=""}
-start_year = {type="int:year", default="parameter:year"}
+start_year = {type="int:year", default="current_year()"}
 name_of_copyright_holder = {type="str", default = "Big Ladder Software"}
 contact = {type="str", default = "info@bigladdersoftware.com"}
 SPDX_license_name = {type="str", default = "BSD-3-Clause"}
@@ -51,7 +59,6 @@ use_taskfile = {type="bool", default=false}
 version_major = {type="int:>=0", default=0}
 version_minor = {type="int:>=0", default=1}
 version_patch = {type="int:>=0", default=0}
-year = {type="int:year", default="current_year()"}
 [[deps]]
 name = "fmt"
 git_url = "https://github.com/fmtlib/fmt.git"

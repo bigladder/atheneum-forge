@@ -160,6 +160,13 @@ def update_project_files(
 
 
 # @app.command()
+# def add_copyright(source_path: Path) -> None:
+#     env = Environment(loader=FileSystemLoader(Path(__file__).parent / "atheneum_forge"), keep_trailing_newline=True)
+#     for file in source_path.iterdir():
+#         core.prepend_copyright_to_copy(file, core.render_copyright_string(env, config, file))
+
+
+# @app.command()
 # def update_copyright(config_path: Path, project_type: str, silent: bool = False) -> None:
 #     """
 #     Run a task to update copyright headers over all recognized files.

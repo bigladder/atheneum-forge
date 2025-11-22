@@ -16,12 +16,11 @@ template = [
 [template-parameters]
 project_type = {type="str", default="python", required=true}
 project_short_description = {type="str", default=""}
-start_year = {type="int:year", default="parameter:year"}
+start_year = {type="int:year", default="current_year()"}
 use_app = {type="bool", default=false}
 version_major = {type="int:>=0", default=0}
 version_minor = {type="int:>=0", default=1}
 version_patch = {type="int:>=0", default=0}
-year = {type="int:year", default="current_year()"}
 name_of_copyright_holder = {type="str", default = "Big Ladder Software"}
 contact = {type="str", default = "info@bigladdersoftware.com"}
 SPDX_license_name = {type="str", default = "BSD-3-Clause"}

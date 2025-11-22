@@ -1,3 +1,4 @@
+import os
 from datetime import datetime
 from pathlib import Path, PurePath
 
@@ -77,8 +78,7 @@ template = [
 ]
 [template-parameters]
 project_name = {type="str"}
-start_year = {type="int:year", default="parameter:year"}
-year = {type="int:year", default="current_year()"}
+start_year = {type="int:year", default="current_year()"}
 version_major = {type="int:>=0", default=0}
 version_minor = {type="int:>=0", default=1}
 version_patch = {type="int:>=0", default=0}
@@ -93,7 +93,6 @@ project_name = "Atheneum"
 # version_major = 0
 # version_minor = 1
 # version_patch = 0
-# year = 2025
 # [[deps]]
 # name = "" # <- name of the dependency; vendor/<name>
 # git_url = "" # <- add the url used to checkout this repository
@@ -376,6 +375,49 @@ def test_render_copyright_template():
     )
     actual = af.render_copyright_string(environment, params, filename)
     assert actual == expected_copy
+
+
+# TODO: This test has File IO - separate
+def test_prepend_copyright():
+    file_content = """
+#include <iostream>
+int main(void) {
+  std::cout << "Hello, World!";
+  return 0;
+}
+    """.strip()
+    cpp_file = Path(__file__).parent / "test_prepend_copyright.cpp"
+    with open(cpp_file, "w", encoding="utf-8") as f:
+        f.write(file_content)
+    copyright_text = "// Copyright 2025 Big Ladder Software\n"
+    af.prepend_copyright_to_copy(cpp_file, copyright_text)
+    with open(cpp_file, "r", encoding="utf-8") as readback:
+        actual = readback.read()
+        expected = copyright_text + file_content
+        assert actual == expected
+    os.remove(cpp_file)
+
+
+# TODO: This test has File IO - separate out
+def test_do_not_prepend_copyright():
+    file_content = """
+// COPYRIGHT (C) 2024 US
+#include <iostream>
+int main(void) {
+  std::cout << "Hello, World!";
+  return 0;
+}
+    """.strip()
+    cpp_file = Path(__file__).parent / "test_prepend_copyright.cpp"
+    with open(cpp_file, "w", encoding="utf-8") as f:
+        f.write(file_content)
+    copyright_text = "// Copyright 2025 Big Ladder Software\n"
+    af.prepend_copyright_to_copy(cpp_file, copyright_text)
+    with open(cpp_file, "r", encoding="utf-8") as readback:
+        actual = readback.read()
+        expected = file_content
+        assert actual == expected
+    os.remove(cpp_file)
 
 
 def test_update_copyright():
