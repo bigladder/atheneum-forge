@@ -3,18 +3,16 @@ Copyright (C) 2024 Big Ladder Software, LLC. See LICENSE.txt for license informa
 """
 
 import logging
-import re
 from pathlib import Path
-from subprocess import CalledProcessError
+from typing import Iterable
 
-import typer
 from rich.console import Console
 from rich.highlighter import RegexHighlighter
 from rich.logging import RichHandler
 from rich.theme import Theme
-from typing_extensions import Annotated
-
-from atheneum_forge import core, project_factory
+from textual import on
+from textual.app import App, ComposeResult
+from textual.widgets import DirectoryTree, Footer, Header, Input, Label, Select
 
 
 class FileStatusHighlighter(RegexHighlighter):
@@ -49,146 +47,50 @@ console_log = logging.getLogger("rich")
 # console_log.addHandler(file_handler)
 
 
-def normalize(name):
-    return re.sub(r"[-_.]+", "-", name).lower()
+class FolderTree(DirectoryTree):
+    """Tree that shows only the entries that are folders."""
+
+    def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
+        return [path for path in paths if path.is_dir()]
 
 
-app = typer.Typer(add_completion=False, pretty_exceptions_enable=False)
+class ForgeUI(App):
+    BINDINGS = [("escape", "quit", "Quit application")]
 
-
-@app.command("generate")
-def generate_project_files(  # type: ignore
-    project_path: Annotated[Path, typer.Argument(help="Directory location of the project.")],
-    git_init: Annotated[bool, typer.Option(help="Initialize git repository in project directory.")] = True,
-    submodule_init: Annotated[
-        bool, typer.Option(help="Initialize git submodules in project vendor directory, if applicable.")
-    ] = True,
-    generator=None,  # Can't type with the abc class
-) -> None:
+    CSS = """
+    .forge-elements {
+        background: purple;
+        border: solid white;
+        margin: 1 1;
+    }
     """
-    (Re-)Generate project from template files.
-    If initialize submodules is True, the config path must be within a git repo.
-    Initializing submodules will set up the vendor directory.
-    """
-    if not generator:
-        type = project_factory.GeneratedProject.get_project_type(project_path)
-        if type == project_factory.ProjectType.cpp:
-            generator = project_factory.GeneratedCPP(project_path)
-        elif type == project_factory.ProjectType.python:
-            generator = project_factory.GeneratedPython(project_path)
-        else:
-            console_log.error("Project type was not found.")
-            raise typer.Exit(1)
 
-    result = generator.generate(project_path)  # type: ignore
-    for r in result:
-        console_log.info(
-            f"- {r}",
-        )
+    def compose(self) -> ComposeResult:
+        yield Header(show_clock=True)
+        yield Input(placeholder="New project directory", classes="forge-elements")
+        yield FolderTree(".", classes="forge-elements")
+        yield Select([("python", 1), ("cpp", 2)], prompt="Project type", classes="forge-elements")
+        yield Footer()
 
-    if git_init:
-        try:
-            core.run_commands(generator.init_git_repo() + generator.init_pre_commit())  # type: ignore
-        except CalledProcessError as err:
-            console_log.error(err)
+    @on(DirectoryTree.DirectorySelected)
+    def get_project_directory(self, message: DirectoryTree.DirectorySelected) -> None:
+        self.project_dir = message.path
+        self.mount(Label(str(self.project_dir)))
+        console_log.info(self.project_dir)
 
-    if submodule_init:
-        try:
-            core.run_commands(generator.init_submodules())  # type: ignore
-        except CalledProcessError as err:
-            console_log.error(err)
+    @on(Input.Submitted)
+    def save_project_directory(self):
+        self.project_dir = Path(self.query_one(Input).value)
+        self.mount(Label(str(self.project_dir)))
+
+    async def action_quit(self):
+        self.exit()
 
 
-ProjType = project_factory.ProjectType
+def main():
+    instance = ForgeUI()
+    instance.run()
 
 
-@app.command("init")
-def initialize_configuration(  # noqa: PLR0913
-    project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
-    project_name: Annotated[str, typer.Argument(help="Name of the project.")] = "",
-    type: ProjType = ProjType.none,
-    generate: Annotated[
-        bool, typer.Option(help="Automatically generate project files alongside configuration.")
-    ] = True,
-    git_init: Annotated[bool, typer.Option(help="Initialize git repository in project directory.")] = True,
-    submodule_init: Annotated[
-        bool, typer.Option(help="Initialize git submodules in project vendor directory, if applicable.")
-    ] = True,
-    force: Annotated[bool, typer.Option(help="Overwrite project configuration file.")] = False,
-) -> None:
-    """
-    Generate a directory and empty config file for the given project type. (Existing
-    configuation files will not be overwritten without the --force flag.)
-    """
-    try:
-        generator: project_factory.GeneratedProject | None
-        if not project_name:
-            project_name = Path(project_path).resolve().name  # normalized or raw?
-        if type == ProjType.none:
-            # We'd like 'type' to be specified as an optional argument, but a "valid" default could have
-            # unintended consequences.
-            console_log.info("Please specify a valid type (use [red]--help[/red] for options).")
-            raise typer.Exit(code=1)
-        elif type == ProjType.cpp:
-            generator = project_factory.GeneratedCPP(project_path, project_name, force)
-        elif type == ProjType.python:
-            generator = project_factory.GeneratedPython(project_path, project_name, force)
-        if git_init or submodule_init:
-            if not generate:
-                # In a python project the pre-commit tool is only installed once pyproject.toml is read,
-                # so it can't be called without file generation
-                console_log.info(
-                    "Git repository not initialized ([red]--no-git-init[/] applied). Please generate "
-                    "project files first."
-                )
-        if generate:
-            generate_project_files(project_path, git_init=git_init, submodule_init=submodule_init, generator=generator)
-    except RuntimeError:
-        raise typer.Exit(code=1)
-
-
-@app.command("update")
-def update_project_files(
-    project_path: Annotated[Path, typer.Argument(help="Directory location of the project.")],
-) -> None:
-    """Shorthand command that calls generate under the hood.
-
-    Args:
-        project_path
-    """
-    return generate_project_files(project_path, False, False, None)
-
-
-# @app.command()
-# def add_copyright(source_path: Path) -> None:
-#     env = Environment(loader=FileSystemLoader(Path(__file__).parent / "atheneum_forge"), keep_trailing_newline=True)
-#     for file in source_path.iterdir():
-#         core.prepend_copyright_to_copy(file, core.render_copyright_string(env, config, file))
-
-
-# @app.command()
-# def update_copyright(config_path: Path, project_type: str, silent: bool = False) -> None:
-#     """
-#     Run a task to update copyright headers over all recognized files.
-#     """
-#     typer.echo("Updating copyright header in files...")
-#     data = setup_dir(config_path)
-#     copy_data_by_file = core.gen_copyright(
-#         data["config"], data["manifest"]["task"]["copyright"]["copy"], data["all_files"]
-#     )
-#     for file_path, copy_lines in copy_data_by_file.items():
-#         path = data["tgt_dir"] / file_path
-#         content = None
-#         with open(path, "r") as fid:
-#             content = fid.read()
-#         add_newline = content[-1] == "\n"
-#         new_content = core.update_copyright(content, copy_lines)
-#         if add_newline:
-#             new_content += "\n"
-#         if new_content != content:
-#             with open(path, "w") as fid:
-#                 fid.write(new_content)
-#             if not silent:
-#                 console_log.info(f"... updated copyright for {file_path}")
-#         elif not silent:
-#             console_log.info(f"... copyright up to date for {file_path}")
+if __name__ == "__main__":
+    main()
