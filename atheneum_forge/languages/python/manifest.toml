@@ -22,7 +22,7 @@ version_major = {type="int:>=0", default=0}
 version_minor = {type="int:>=0", default=1}
 version_patch = {type="int:>=0", default=0}
 name_of_copyright_holder = {type="str", default = "Big Ladder Software"}
-contact = {type="str", default = "info@bigladdersoftware.com"}
+contact_email = {type="str", default = "info@bigladdersoftware.com"}
 SPDX_license_name = {type="str", default = "BSD-3-Clause"}
 [[deps]]
 [task.copyright]

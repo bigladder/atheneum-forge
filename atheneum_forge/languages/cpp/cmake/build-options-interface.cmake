@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 # Common interface library is used to set flags that are always applied to this project regardless of whether it is a
 # top level project or not.
 add_library(${PROJECT_NAME}_build_options INTERFACE)

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 macro(add_submodule submodule_name)
     # Clone a submodule and add its subdirectory to the build (if the corresponding target hasn't already been added)
     set(options) # None

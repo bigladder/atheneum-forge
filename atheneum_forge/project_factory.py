@@ -1,7 +1,9 @@
 import filecmp
 import logging
 import re
+import shutil
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from subprocess import CalledProcessError
@@ -105,7 +107,7 @@ class GeneratedProject(ABC):
                 raise RuntimeError("Error while processing config file.")
         else:
             console_log.info(f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.')
-            raise RuntimeError()
+            raise RuntimeError(f'{configuration_file}" already exists. Use --force to overwrite.')
 
     def _check_directories(self, project_path: Path) -> None:
         """Ensure that the target (project) directory and config file exist, then collect configuration information.
@@ -174,7 +176,8 @@ class GeneratedProject(ABC):
                     if not to_path.parent.exists():
                         to_path.parent.mkdir(parents=True)
                     # This is always a wholesale COPY, not update/merge.
-                    core.prepend_copyright_to_copy(from_path, copyright_text)
+                    shutil.copyfile(from_path, to_path)
+                    core.prepend_copyright_to_copy(to_path, copyright_text)
                     prefix = f"{'COPY':<{width}}: "
                 elif not filecmp.cmp(from_path, to_path):  # OUT OF DATE
                     update.write_precursors_and_updated_file(strategy, from_path, to_path)
@@ -186,7 +189,9 @@ class GeneratedProject(ABC):
                 if not to_path.parent.exists():
                     to_path.parent.mkdir(parents=True, exist_ok=True)
                 if to_path.exists():
-                    with open(to_path, "r", encoding="utf-8") as existing:
+                    with open(
+                        to_path, "r", encoding="utf-8"
+                    ) as existing:  # TODO: UnicodeDecodeError possible for 'existing'
                         if existing.read() == out:
                             prefix = f"{'UP-TO-DATE(file)':<{width}}: "
                         else:  # OUT OF DATE
@@ -232,6 +237,61 @@ class GeneratedProject(ABC):
             if not self._is_git_repo()
             else []
         )
+
+    @dataclass
+    class CommentedTomlEntry:
+        comment: str
+        parameter: str
+        value: str
+
+        def __str__(self):
+            return f"{self.comment}{self.parameter} = {self.value}\n"
+
+    def edit_forge_config(self, edits: dict[str, str]) -> None:  # noqa: PLR0912 too-many-branches
+        """
+        Allow programmatic changes to the project configuration file, to take effect before project generation.
+        """
+        configuration_changes: dict[str, str] = {}
+        for key, value in edits.items():
+            if key in self.manifest["template-parameters"] and not self.manifest["template-parameters"][key].get(
+                "private"
+            ):
+                configuration_changes[key] = value
+            else:
+                console_log.info("Values may be assigned to the following items:")
+                console_log.info(list(self.manifest["template-parameters"].keys()))
+        try:
+            forge_config_file: Path = self.target_dir / FORGE_CONFIG
+            # First, categorize the config file entries into active and inactive (commented) entries
+            commented_toml: list[GeneratedProject.CommentedTomlEntry | str] = []
+            with open(forge_config_file, "r", encoding="utf-8") as config_file:
+                for line in config_file:
+                    config_line = re.match(r"(?P<comment>(^# )?)(?P<parameter>\S*) = (?P<value>\S*)", line)
+                    if config_line:
+                        commented_toml.append(
+                            GeneratedProject.CommentedTomlEntry(
+                                config_line.group("comment"), config_line.group("parameter"), config_line.group("value")
+                            )
+                        )
+                    else:
+                        commented_toml.append(line)
+            with open(forge_config_file, "w", encoding="utf-8") as edited:
+                for entry in commented_toml:  # Preserve line-ordering from original file
+                    if not isinstance(entry, GeneratedProject.CommentedTomlEntry):  # e.g. "[[deps]]"
+                        edited.write(entry)
+                    else:
+                        for i, (parameter, new_value) in enumerate(configuration_changes.items()):
+                            if parameter in entry.parameter:  # Are any of the requested changes in the current line?
+                                entry.value = f'"{new_value}"'  # Quotes added for compatibility with existing entries
+                                entry.comment = ""
+                                edited.write(str(entry))
+                                break
+                            elif i == len(configuration_changes) - 1:
+                                edited.write(str(entry))
+            # Re-load to memory
+            self.configuration = core.read_toml(forge_config_file)
+        except FileNotFoundError:
+            pass
 
     @abstractmethod
     def init_pre_commit(self) -> list:

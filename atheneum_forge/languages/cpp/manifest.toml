@@ -1,9 +1,9 @@
 static = [
-  {from="cmake/build-options-interface.cmake", to="cmake/.", add_copyright=true},
-  {from="cmake/get-git-hash.cmake", to="cmake/.", add_copyright=true},
-  {from="cmake/git-versioning.cmake", to="cmake/.", add_copyright=true},
-  {from="cmake/initialize-submodules.cmake", to="cmake/.", add_copyright=true},
-  {from="cmake/toolchain-windows.cmake", to="cmake/.", add_copyright=true},
+  {from="cmake/build-options-interface.cmake", to="cmake/."},
+  {from="cmake/get-git-hash.cmake", to="cmake/."},
+  {from="cmake/git-versioning.cmake", to="cmake/."},
+  {from="cmake/initialize-submodules.cmake", to="cmake/."},
+  {from="cmake/toolchain-windows.cmake", to="cmake/."},
   {from="cmake/Findcodecov.cmake", to="cmake/."},
   {from="cmake/FindGcov.cmake", to="cmake/."},
   {from="cmake/FindLcov.cmake", to="cmake/."},
@@ -46,7 +46,7 @@ project_type = {type="str", default="cpp", required=true}
 project_short_description = {type="str", default=""}
 start_year = {type="int:year", default="current_year()"}
 name_of_copyright_holder = {type="str", default = "Big Ladder Software"}
-contact = {type="str", default = "info@bigladdersoftware.com"}
+contact_email = {type="str", default = "info@bigladdersoftware.com"}
 SPDX_license_name = {type="str", default = "BSD-3-Clause"}
 use_app = {type="bool", default=false}
 # if use_cmake_version is true, the version in the top-level CMakeLists.txt file

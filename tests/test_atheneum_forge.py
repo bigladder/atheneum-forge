@@ -2,7 +2,6 @@ import os
 from datetime import datetime
 from pathlib import Path, PurePath
 
-import tomllib
 from jinja2 import Environment, FileSystemLoader
 
 import atheneum_forge.core as af
@@ -104,38 +103,38 @@ project_name = "Atheneum"
     assert expected == actual
 
 
-def test_merge_config_with_defaults():
-    manifest_toml = """
-[template-parameters]
-project_name = {type="str"}
-start_year = {type="int:year", default="parameter:year"}
-year = {type="int:year", default="current_year()"}
-version_major = {type="int:>=0", default=0}
-version_minor = {type="int:>=0", default=1}
-version_patch = {type="int:>=0", default=0}
-use_app = {type="bool", default=false}
-    """
-    manifest = af.read_manifest(manifest_toml)
-    config_toml = """
-project_name = "bob"
-start_year = 2022
-# use_app = false
-# version_major = 0
-# version_minor = 1
-# version_patch = 0
-# year = 2024
-    """
-    actual = af.read_config(tomllib.loads(config_toml), manifest["template-parameters"])
-    expected = {
-        "project_name": "bob",
-        "start_year": 2022,
-        "use_app": False,
-        "version_major": 0,
-        "version_minor": 1,
-        "version_patch": 0,
-        "year": datetime.now().year,
-    }
-    assert actual == expected
+# def test_merge_config_with_defaults():
+#     manifest_toml = """
+# [template-parameters]
+# project_name = {type="str"}
+# start_year = {type="int:year", default="parameter:year"}
+# year = {type="int:year", default="current_year()"}
+# version_major = {type="int:>=0", default=0}
+# version_minor = {type="int:>=0", default=1}
+# version_patch = {type="int:>=0", default=0}
+# use_app = {type="bool", default=false}
+#     """
+#     manifest = af.read_manifest(manifest_toml)
+#     config_toml = """
+# project_name = "bob"
+# start_year = 2022
+# # use_app = false
+# # version_major = 0
+# # version_minor = 1
+# # version_patch = 0
+# # year = 2024
+#     """
+#     actual = af.read_config(tomllib.loads(config_toml), manifest["template-parameters"])
+#     expected = {
+#         "project_name": "bob",
+#         "start_year": 2022,
+#         "use_app": False,
+#         "version_major": 0,
+#         "version_minor": 1,
+#         "version_patch": 0,
+#         "year": datetime.now().year,
+#     }
+#     assert actual == expected
 
 
 def test_build_path():
@@ -365,7 +364,7 @@ def test_render_copyright_template():
         "year": year,
         "start_year": start_year,
         "name_of_copyright_holder": name_of_copyright_holder,
-        "contact": contact,
+        "contact_email": contact,
         "SPDX_license_name": SPDX_license_name,
     }
     filename = Path("src/a.cpp")

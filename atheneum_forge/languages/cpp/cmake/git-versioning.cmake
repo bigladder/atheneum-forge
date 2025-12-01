@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 macro(git_command args output_variable)
     execute_process(
             COMMAND ${GIT_EXECUTABLE} ${args}

@@ -219,7 +219,7 @@ def create_config_toml(manifest: dict, project_name: str, all_files: set | None 
     """.strip()
     )
     postfix = "\n".join(dep_strings)
-    return "\n".join(configuration_entries) + "\n" + postfix
+    return "\n".join(configuration_entries) + "\n" + postfix + "\n"
 
 
 def merge_defaults_into_config(config: dict, manifest_defaults: dict, target_files: set | None = None) -> dict:  # noqa: PLR0912
@@ -290,18 +290,18 @@ def read_toml(input_file: Path) -> dict:
         raise FileNotFoundError(f"{input_file} does not exist.")
 
 
-def read_config(config: dict, parameters: dict, all_files: set | None = None) -> dict:
-    """Mix defaults from manifest's parameters section into the configuration toml data.
+# def read_config(config: dict, parameters: dict, all_files: set | None = None) -> dict:
+#     """Mix defaults from manifest's parameters section into the configuration toml data.
 
-    Args:
-        config (dict):
-        parameters (dict):
-        all_files (set | None, optional):
+#     Args:
+#         config (dict):
+#         parameters (dict):
+#         all_files (set | None, optional):
 
-    Returns:
-        dict: _description_
-    """
-    return merge_defaults_into_config(config, parameters, all_files)
+#     Returns:
+#         dict: _description_
+#     """
+#     return merge_defaults_into_config(config, parameters, all_files)
 
 
 def list_files_in(dir_path: Path) -> set:
