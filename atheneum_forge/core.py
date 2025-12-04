@@ -443,13 +443,16 @@ def render_copyright_string(environment: Environment, config: dict, for_file: Pa
 def prepend_copyright_to_copy(from_path, copyright_text):
     copyright_indicators = ["Copyright", "copyright", "(C)", "(c)", "©"]
     already_copyrighted = False
-    with open(from_path, "r", encoding="utf-8") as from_file:
-        # Allow copyright information from the first two lines
-        head = [next(from_file) for _ in range(2)]
-        for line in head:
-            already_copyrighted = any(c in line for c in copyright_indicators)
-            if already_copyrighted:
-                break
+    try:
+        with open(from_path, "r", encoding="utf-8") as from_file:
+            # Allow copyright information from the first two lines
+            head = [next(from_file) for _ in range(2)]
+            for line in head:
+                already_copyrighted = any(c in line for c in copyright_indicators)
+                if already_copyrighted:
+                    break
+    except UnicodeDecodeError as u:
+        raise RuntimeError(f"{u} in file {from_path}")
     with open(from_path, "r+", encoding="utf-8") as f:
         contents = f.read()
         f.seek(0)

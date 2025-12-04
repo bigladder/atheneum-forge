@@ -189,14 +189,18 @@ class GeneratedProject(ABC):
                 if not to_path.parent.exists():
                     to_path.parent.mkdir(parents=True, exist_ok=True)
                 if to_path.exists():
-                    with open(
-                        to_path, "r", encoding="utf-8"
-                    ) as existing:  # TODO: UnicodeDecodeError possible for 'existing'
-                        if existing.read() == out:
-                            prefix = f"{'UP-TO-DATE(file)':<{width}}: "
-                        else:  # OUT OF DATE
-                            update.write_precursors_and_updated_file(strategy, from_path, to_path, out)
-                            prefix = f"{'UPDATE':<{width}}: "
+                    try:
+                        with open(to_path, "r", encoding="utf-8") as existing:  # TODO:  possible for 'existing'
+                            if existing.read() == out:
+                                prefix = f"{'UP-TO-DATE(file)':<{width}}: "
+                            else:  # OUT OF DATE
+                                update.write_precursors_and_updated_file(strategy, from_path, to_path, out)
+                                prefix = f"{'UPDATE':<{width}}: "
+                    except UnicodeDecodeError as u:
+                        raise RuntimeError(
+                            f"{u} while updating file {to_path}. "
+                            "Try first opening the file and saving with UTF-8 encoding."
+                        )
                 else:  # File didn't exist, create (render)
                     with open(to_path, "w", encoding="utf-8") as fid:
                         fid.write(out)

@@ -12,7 +12,7 @@ from rich.logging import RichHandler
 from rich.theme import Theme
 from textual import on
 from textual.app import App, ComposeResult
-from textual.widgets import DirectoryTree, Footer, Header, Input, Label, Select
+from textual.widgets import Checkbox, DirectoryTree, Footer, Header, Input, Label, Select
 
 
 class FileStatusHighlighter(RegexHighlighter):
@@ -67,20 +67,22 @@ class ForgeUI(App):
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
-        yield Input(placeholder="New project directory", classes="forge-elements")
-        yield FolderTree(".", classes="forge-elements")
-        yield Select([("python", 1), ("cpp", 2)], prompt="Project type", classes="forge-elements")
+        yield FolderTree(".", classes="forge-elements", id="project_directory_tree")
+        yield Input(id="project_directory_input", placeholder="New project directory", classes="forge-elements")
+        yield Select([("python", 1), ("cpp", 2)], prompt="Project type", classes="forge-elements", value=1)
+        yield Checkbox("Initialize git repo", False)
+        yield Checkbox("Initialize submodules", False)
         yield Footer()
 
     @on(DirectoryTree.DirectorySelected)
     def get_project_directory(self, message: DirectoryTree.DirectorySelected) -> None:
         self.project_dir = message.path
-        self.mount(Label(str(self.project_dir)))
-        console_log.info(self.project_dir)
+        # self.mount(Label(str(self.project_dir)))
+        self.query_one("#project_directory_input", Input).value = str(self.project_dir.resolve())
 
     @on(Input.Submitted)
     def save_project_directory(self):
-        self.project_dir = Path(self.query_one(Input).value)
+        self.project_dir = Path(self.query_one("#project_directory_input", Input).value)
         self.mount(Label(str(self.project_dir)))
 
     async def action_quit(self):
