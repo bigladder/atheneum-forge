@@ -17,6 +17,7 @@ dependencies = [
 
 [project.scripts]
 forge = "atheneum_forge.main:main"
+forge-cli ="atheneum_forge.main_cli:app"
 
 [dependency-groups]
 dev = [

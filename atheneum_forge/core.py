@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 import logging
 import re
 import subprocess
@@ -11,7 +14,7 @@ import tomli_w
 import tomllib
 from jinja2 import Environment, Template
 
-log = logging.getLogger("rich")
+log = logging.getLogger("forge")
 
 UNDEFAULTED_PARAMETERS = {"project_name", "deps"}
 RECOGNIZED_SRC_DIRS = {"src", "include", "test", "app"}
@@ -78,7 +81,7 @@ class ProjectFile:
     from_path: Path
     to_path: Path
     onetime: bool
-    add_copyright: bool
+    add_owner_copyright: bool
 
 
 def collect_source_files(source_directory: Path, target_directory: Path, file_directives: list) -> list[ProjectFile]:
@@ -96,7 +99,7 @@ def collect_source_files(source_directory: Path, target_directory: Path, file_di
 
     for f in file_directives:
         onetime = f.get("onetime", False)
-        add_copyright = f.get("add_copyright", False)
+        add_owner_copyright = f.get("add_owner_copyright", False)
 
         to_path_with_glob = build_path(target_directory, f["to"])
         if to_path_with_glob["glob"] is not None:  # TODO: Errors in the manifest shouldn't read out to the user!
@@ -123,7 +126,7 @@ def collect_source_files(source_directory: Path, target_directory: Path, file_di
             else:
                 # Single file output, same name
                 to_name = to_path / from_path.name
-            project_files.append(ProjectFile(from_path, to_name, onetime, add_copyright))
+            project_files.append(ProjectFile(from_path, to_name, onetime, add_owner_copyright))
         else:
             if not to_path.exists():
                 to_path.mkdir(parents=True, exist_ok=True)
@@ -131,7 +134,7 @@ def collect_source_files(source_directory: Path, target_directory: Path, file_di
             for fpath in from_path.glob(glob):
                 if fpath.is_dir():
                     continue
-                project_files.append(ProjectFile(fpath, to_path / fpath.name, onetime, add_copyright))
+                project_files.append(ProjectFile(fpath, to_path / fpath.name, onetime, add_owner_copyright))
     return project_files
 
 
@@ -441,24 +444,25 @@ def render_copyright_string(environment: Environment, config: dict, for_file: Pa
 
 
 def prepend_copyright_to_copy(from_path, copyright_text):
-    copyright_indicators = ["Copyright", "copyright", "(C)", "(c)", "©"]
-    already_copyrighted = False
-    try:
-        with open(from_path, "r", encoding="utf-8") as from_file:
-            # Allow copyright information from the first two lines
-            head = [next(from_file) for _ in range(2)]
-            for line in head:
-                already_copyrighted = any(c in line for c in copyright_indicators)
-                if already_copyrighted:
-                    break
-    except UnicodeDecodeError as u:
-        raise RuntimeError(f"{u} in file {from_path}")
-    with open(from_path, "r+", encoding="utf-8") as f:
-        contents = f.read()
-        f.seek(0)
-        if not already_copyrighted:
-            f.write(copyright_text)
-        f.write(contents)
+    if copyright_text:
+        copyright_indicators = ["Copyright", "copyright", "(C)", "(c)", "©"]
+        already_copyrighted = False
+        try:
+            with open(from_path, "r", encoding="utf-8") as from_file:
+                # Allow copyright information from the first two lines
+                head = [next(from_file) for _ in range(2)]
+                for line in head:
+                    already_copyrighted = any(c in line for c in copyright_indicators)
+                    if already_copyrighted:
+                        break
+        except UnicodeDecodeError as u:
+            raise RuntimeError(f"{u} in file {from_path}")
+        with open(from_path, "r+", encoding="utf-8") as f:
+            contents = f.read()
+            f.seek(0)
+            if not already_copyrighted:
+                f.write(copyright_text)
+            f.write(contents)
 
 
 def update_copyright(file_content: str, copy_lines: list) -> str:

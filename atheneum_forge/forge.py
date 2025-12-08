@@ -1,6 +1,5 @@
-"""
-Copyright (C) 2024 Big Ladder Software, LLC. See LICENSE.txt for license information.
-"""
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
 
 import logging
 import re
@@ -11,7 +10,7 @@ from jinja2 import Environment, FileSystemLoader
 
 from atheneum_forge import core, project_factory
 
-console_log = logging.getLogger("rich")
+logger = logging.getLogger("forge")
 
 
 def normalize(name):
@@ -43,7 +42,7 @@ class AtheneumForge:
             if type == ProjType.none:
                 # We'd like 'type' to be specified as an optional argument, but a "valid" default could have
                 # unintended consequences.
-                console_log.error("Please specify a valid type (use [red]--help[/red] for options).")
+                logger.error("Please specify a valid type (use [red]--help[/red] for options).")
                 raise RuntimeError
             elif type == ProjType.cpp:
                 self.generator = project_factory.GeneratedCPP(project_path, project_name, force)
@@ -53,7 +52,7 @@ class AtheneumForge:
                 if not generate:
                     # In a python project the pre-commit tool is only installed once pyproject.toml is read,
                     # so it can't be called without file generation
-                    console_log.info(
+                    logger.info(
                         "Git repository not initialized ([red]--no-git-init[/] applied). Please generate "
                         "project files first."
                     )
@@ -77,11 +76,11 @@ class AtheneumForge:
             elif type == project_factory.ProjectType.python:
                 self.generator = project_factory.GeneratedPython(project_path)
             else:
-                console_log.error("Project type was not found.")
+                logger.error("Project type was not found.")
 
         result = self.generator.generate(project_path)  # type: ignore
         for r in result:
-            console_log.info(
+            logger.info(
                 f"- {r}",
             )
 
@@ -89,14 +88,14 @@ class AtheneumForge:
             try:
                 core.run_commands(self.generator.init_git_repo() + self.generator.init_pre_commit())  # type: ignore
             except CalledProcessError as err:
-                console_log.error(err)
+                logger.error(err)
                 raise err
 
         if submodule_init:
             try:
                 core.run_commands(self.generator.init_submodules())  # type: ignore
             except CalledProcessError as err:
-                console_log.error(err)
+                logger.error(err)
                 raise err
 
     def update_project_files(
@@ -110,7 +109,7 @@ class AtheneumForge:
         """
         return self.generate_project_files(project_path, False, False)
 
-    def add_copyright(self, source_path: Path) -> None:
+    def add_owner_copyright(self, source_path: Path) -> None:
         env = Environment(loader=FileSystemLoader(Path(__file__).parent), keep_trailing_newline=True)
         for file in source_path.iterdir():
             if self.generator:
@@ -118,7 +117,7 @@ class AtheneumForge:
                     file, core.render_copyright_string(env, self.generator.configuration, file)
                 )
             else:
-                console_log.info("Select a project type before adding copyright to files.")
+                logger.info("Select a project type before adding copyright to files.")
 
     def edit_config(self, edits: dict[str, str]) -> None:
         if self.generator:

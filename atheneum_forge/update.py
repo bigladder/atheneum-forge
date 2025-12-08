@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 import filecmp
 import importlib
 import logging
@@ -14,7 +17,7 @@ class IndentDumper(Dumper):
         return super(IndentDumper, self).increase_indent(flow, False)
 
 
-console_log = logging.getLogger("rich")
+logger = logging.getLogger("forge")
 
 MergeFunction = Callable[[Path, Path], StringIO]
 

@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 import filecmp
 import logging
 import re
@@ -17,7 +20,7 @@ DATA_DIR = (THIS_DIR / "languages").resolve()
 FORGE_CONFIG = "forge.toml"
 
 
-console_log = logging.getLogger("rich")
+logger = logging.getLogger("forge")
 
 
 def underscore(name):
@@ -106,7 +109,7 @@ class GeneratedProject(ABC):
             except (TypeError, RuntimeError, FileNotFoundError):
                 raise RuntimeError("Error while processing config file.")
         else:
-            console_log.info(f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.')
+            logger.info(f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.')
             raise RuntimeError(f'{configuration_file}" already exists. Use --force to overwrite.')
 
     def _check_directories(self, project_path: Path) -> None:
@@ -262,8 +265,8 @@ class GeneratedProject(ABC):
             ):
                 configuration_changes[key] = value
             else:
-                console_log.info("Values may be assigned to the following items:")
-                console_log.info(list(self.manifest["template-parameters"].keys()))
+                logger.info("Values may be assigned to the following items:")
+                logger.info(list(self.manifest["template-parameters"].keys()))
         try:
             forge_config_file: Path = self.target_dir / FORGE_CONFIG
             # First, categorize the config file entries into active and inactive (commented) entries
@@ -344,7 +347,7 @@ class GeneratedCPP(GeneratedProject):
                         update_type = self.manifest["update-strategies"][file_type.lstrip(".")]
                 copyright_text = (
                     core.render_copyright_string(self.environment, self.configuration, f.to_path)
-                    if f.add_copyright
+                    if f.add_owner_copyright
                     else ""
                 )
                 result.append(
@@ -356,7 +359,7 @@ class GeneratedCPP(GeneratedProject):
             if f.to_path.resolve() not in self.do_not_update:
                 copyright_text = (
                     core.render_copyright_string(self.environment, self.configuration, f.to_path)
-                    if f.add_copyright
+                    if f.add_owner_copyright
                     else ""
                 )
                 result.append(
@@ -441,7 +444,7 @@ class GeneratedPython(GeneratedProject):
             if f.to_path.resolve() not in self.do_not_update:
                 copyright_text = (
                     core.render_copyright_string(self.environment, self.configuration, f.to_path)
-                    if f.add_copyright
+                    if f.add_owner_copyright
                     else ""
                 )
                 result.append(
@@ -459,7 +462,7 @@ class GeneratedPython(GeneratedProject):
             if f.to_path.resolve() not in self.do_not_update:
                 copyright_text = (
                     core.render_copyright_string(self.environment, self.configuration, f.to_path)
-                    if f.add_copyright
+                    if f.add_owner_copyright
                     else ""
                 )
                 result.append(

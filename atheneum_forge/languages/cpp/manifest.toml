@@ -19,14 +19,14 @@ static = [
   {from="CMakePresets.json", to="."}
 ]
 template = [
-  {from="main_CMakeLists.txt.j2", to=".", oname="CMakeLists.txt", add_copyright=true},
-  {from="LICENSE.txt", to=".", onetime=true, oname="LICENSE.txt", add_copyright=true},
-  {from="README.md.j2", to=".", onetime=true, oname="README.md", add_copyright=true},
-  {from="src/src_CMakeLists.txt.j2", to="src/.", oname="CMakeLists.txt", add_copyright=true},
-  {from="vendor/vendor_CMakeLists.txt.j2", to="vendor/.", oname="CMakeLists.txt", add_copyright=true},
-  {from="test/test_CMakeLists.txt.j2", to="test/.", oname="CMakeLists.txt", add_copyright=true},
+  {from="main_CMakeLists.txt.j2", to=".", oname="CMakeLists.txt", add_owner_copyright=true},
+  {from="LICENSE.txt", to=".", onetime=true, oname="LICENSE.txt", add_owner_copyright=true},
+  {from="README.md.j2", to=".", onetime=true, oname="README.md", add_owner_copyright=true},
+  {from="src/src_CMakeLists.txt.j2", to="src/.", oname="CMakeLists.txt", add_owner_copyright=true},
+  {from="vendor/vendor_CMakeLists.txt.j2", to="vendor/.", oname="CMakeLists.txt", add_owner_copyright=true},
+  {from="test/test_CMakeLists.txt.j2", to="test/.", oname="CMakeLists.txt", add_owner_copyright=true},
   {from="Dockerfile.format.j2", to=".", oname="Dockerfile.format"},
-  {from="app/app_CMakeLists.txt.j2", to="app/.", oname="CMakeLists.txt", if="use_app", add_copyright=true},
+  {from="app/app_CMakeLists.txt.j2", to="app/.", oname="CMakeLists.txt", if="use_app", add_owner_copyright=true},
   {from=".github/workflows/clang-format-check.yml.j2", to=".github/workflows/.", oname="clang-format-check.yml"},
   {from="Taskfile.yml.j2", to=".", onetime=true, oname="Taskfile.yml", if="use_taskfile"},
   {from=".clang-tidy.j2", to=".", oname=".clang-tidy"},
