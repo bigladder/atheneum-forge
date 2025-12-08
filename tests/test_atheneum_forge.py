@@ -4,7 +4,7 @@ from pathlib import Path, PurePath
 
 from jinja2 import Environment, FileSystemLoader
 
-import atheneum_forge.core as af
+from atheneum_forge import core
 
 
 def test_template():
@@ -15,7 +15,7 @@ def test_template():
 cmake_minimum_required(VERSION 3.10) # required for gtest_discover_tests
 project({{ project_name | lower }}) # Replace
     """
-    actual = af.render(template, config)
+    actual = core.render(template, config)
     expected = """
 cmake_minimum_required(VERSION 3.10) # required for gtest_discover_tests
 project(atheneum) # Replace
@@ -33,7 +33,7 @@ template = [
   {from="CMakeLists.txt", to="."}
 ]
     """
-    data = af.read_manifest(toml_str)
+    data = core.read_manifest(toml_str)
     assert len(data) > 0
     assert "static" in data
     assert "template" in data
@@ -83,8 +83,8 @@ version_minor = {type="int:>=0", default=1}
 version_patch = {type="int:>=0", default=0}
 use_app = {type="bool", default=false}
     """
-    data = af.read_manifest(toml_str)
-    actual = af.create_config_toml(data, "Atheneum")
+    data = core.read_manifest(toml_str)
+    actual = core.create_config_toml(data, "Atheneum")
     expected = """
 project_name = "Atheneum"
 # start_year = 2025
@@ -140,7 +140,7 @@ project_name = "Atheneum"
 def test_build_path():
     starting_dir = Path("/projects/example/data")
     path_str = "cmake/superstuff.cmake"
-    actual = af.build_path(starting_dir, path_str)
+    actual = core.build_path(starting_dir, path_str)
     expected = {
         "path": Path("/projects/example/data/cmake/superstuff.cmake"),
         "glob": None,
@@ -151,7 +151,7 @@ def test_build_path():
 def test_build_path_2():
     starting_dir = Path("/projects/example/data")
     path_str = "cmake/*.cmake"
-    actual = af.build_path(starting_dir, path_str)
+    actual = core.build_path(starting_dir, path_str)
     expected = {
         "path": Path("/projects/example/data/cmake/"),
         "glob": "*.cmake",
@@ -162,7 +162,7 @@ def test_build_path_2():
 def test_build_path_3():
     starting_dir = Path("/projects/example/data")
     path_str = "**/*.cpp"
-    actual = af.build_path(starting_dir, path_str)
+    actual = core.build_path(starting_dir, path_str)
     expected = {"path": Path("/projects/example/data"), "glob": "**/*.cpp"}
     assert actual == expected
 
@@ -199,7 +199,7 @@ def test_merge_defaults_into_config():
             "default": False,
         },
     }
-    actual = af.merge_defaults_into_config(config, defaults)
+    actual = core.merge_defaults_into_config(config, defaults)
     expected = {
         "project_name": "bob",
         "start_year": 2022,
@@ -213,15 +213,15 @@ def test_merge_defaults_into_config():
 
 
 def test_derive_default_param():
-    actual = af.derive_default_parameter({}, "foo")
+    actual = core.derive_default_parameter({}, "foo")
     expected = None
     assert actual == expected
 
-    actual = af.derive_default_parameter({"foo": {}}, "foo")
+    actual = core.derive_default_parameter({"foo": {}}, "foo")
     expected = None
     assert actual == expected
 
-    actual = af.derive_default_parameter({"foo": {"default": "bar"}}, "foo")
+    actual = core.derive_default_parameter({"foo": {"default": "bar"}}, "foo")
     expected = "bar"
     assert actual == expected
 
@@ -246,7 +246,7 @@ def test_derive_default_parameter_with_src_tree():
             "default": "include/*/*.h",
         },
     }
-    actual = af.derive_default_parameter(defaults, "files_src", all_files)
+    actual = core.derive_default_parameter(defaults, "files_src", all_files)
     expected = [
         {"path": "src/a.cpp", "name": "a.cpp", "code_path": "src/a.cpp"},
         {"path": "src/b.cpp", "name": "b.cpp", "code_path": "src/b.cpp"},
@@ -254,7 +254,7 @@ def test_derive_default_parameter_with_src_tree():
     ]
     assert actual == expected
 
-    actual = af.derive_default_parameter(defaults, "headers_public", all_files)
+    actual = core.derive_default_parameter(defaults, "headers_public", all_files)
     expected = [
         {"path": "include/abc/abc.h", "name": "abc.h", "code_path": "abc/abc.h"},
     ]
@@ -263,7 +263,7 @@ def test_derive_default_parameter_with_src_tree():
 
 def test_init_git_repo():
     dir = "/Users/frodo-baggins/projects/test-project/"
-    actual = af.init_git_repo(dir)
+    actual = core.init_git_repo(dir)
     expected = [
         {
             "dir": PurePath(dir),
@@ -279,7 +279,7 @@ def test_setup_vendor():
     dir = "/Users/frodo-baggins/projects/test-project/"
     tgt_dir = Path(dir)
     config: dict = {}
-    actual = af.setup_vendor(config, tgt_dir, dry_run=True)
+    actual = core.setup_vendor(config, tgt_dir, dry_run=True)
     expected: list = []
     assert actual == expected
 
@@ -302,7 +302,7 @@ def test_setup_vendor():
             },
         ],
     }
-    actual = af.setup_vendor(config, tgt_dir, dry_run=True)
+    actual = core.setup_vendor(config, tgt_dir, dry_run=True)
     expected = [
         {
             "dir": PurePath(dir),
@@ -350,7 +350,7 @@ def test_gen_copyright():
         "app/abc.cpp": [expected_copy],
         "include/abc/abc.h": [expected_copy],
     }
-    actual = af.gen_copyright(params, copy_template, all_files)
+    actual = core.gen_copyright(params, copy_template, all_files)
     assert actual == expected
 
 
@@ -372,7 +372,7 @@ def test_render_copyright_template():
     environment = Environment(
         loader=FileSystemLoader(Path(__file__).parent.parent / "atheneum_forge"), keep_trailing_newline=True
     )
-    actual = af.render_copyright_string(environment, params, filename)
+    actual = core.render_copyright_string(environment, params, filename)
     assert actual == expected_copy
 
 
@@ -389,7 +389,7 @@ int main(void) {
     with open(cpp_file, "w", encoding="utf-8") as f:
         f.write(file_content)
     copyright_text = "// Copyright 2025 Big Ladder Software\n"
-    af.prepend_copyright_to_copy(cpp_file, copyright_text)
+    core.prepend_copyright_to_copy(cpp_file, copyright_text)
     with open(cpp_file, "r", encoding="utf-8") as readback:
         actual = readback.read()
         expected = copyright_text + file_content
@@ -411,7 +411,7 @@ int main(void) {
     with open(cpp_file, "w", encoding="utf-8") as f:
         f.write(file_content)
     copyright_text = "// Copyright 2025 Big Ladder Software\n"
-    af.prepend_copyright_to_copy(cpp_file, copyright_text)
+    core.prepend_copyright_to_copy(cpp_file, copyright_text)
     with open(cpp_file, "r", encoding="utf-8") as readback:
         actual = readback.read()
         expected = file_content
@@ -430,7 +430,7 @@ int main(void) {
     """.strip()
     copy_lines = ["// COPYRIGHT (C) 2024 US"]
     expected = file_content
-    actual = af.update_copyright(file_content, copy_lines)
+    actual = core.update_copyright(file_content, copy_lines)
     print(f"EXPECT:\n{expected}")
     print(f"ACTUAL:\n{actual}")
     assert actual == expected
@@ -444,7 +444,7 @@ int main(void) {
   return 0;
 }
 """.strip()
-    actual = af.update_copyright(file_content, copy_lines)
+    actual = core.update_copyright(file_content, copy_lines)
     print(f"EXPECT:\n{expected}")
     print(f"ACTUAL:\n{actual}")
     assert actual == expected
@@ -465,7 +465,7 @@ int main(void) {
   return 0;
 }
 """.strip()
-    actual = af.update_copyright(file_content, copy_lines)
+    actual = core.update_copyright(file_content, copy_lines)
     print(f"EXPECT:\n{expected}")
     print(f"ACTUAL:\n{actual}")
     assert actual == expected
@@ -473,7 +473,7 @@ int main(void) {
     file_content = ""
     copy_lines = ["// COPYRIGHT (C) 2025 US"]
     expected = "// COPYRIGHT (C) 2025 US"
-    actual = af.update_copyright(file_content, copy_lines)
+    actual = core.update_copyright(file_content, copy_lines)
     assert actual == expected
 
     file_content = """
@@ -493,5 +493,5 @@ int main(void) {
   return 0;
 }
     """.strip()
-    actual = af.update_copyright(file_content, copy_lines)
+    actual = core.update_copyright(file_content, copy_lines)
     assert actual == expected

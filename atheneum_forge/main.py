@@ -170,23 +170,6 @@ class ForgeUI(App):
         self.project_name = self.query_one("#project_name", Input).value
         self.app.action_focus_next()
 
-        # match id := event.input.id:
-        #     case "project_parent":
-        #         self.project_dir = Path(self.query_one(f"#{id}", Input).value)
-        #         if self.project_dir:
-        #             logger.info("Project parent directory is %s", self.project_dir)
-        #             self.app.action_focus_next()
-        #     case "project_subdirectory":
-        #         self.project_subdirectory = Path(self.query_one(f"#{id}", Input).value)
-        #         if self.project_subdirectory:
-        #             logger.info("Project directory is %s", self.project_subdirectory)
-        #             self.app.action_focus_next()
-        #     case "project_name":
-        #         self.project_name = self.query_one(f"#{id}", Input).value
-        #         if self.project_name:
-        #             logger.info("Project name is %s", self.project_name)
-        #             self.app.action_focus_next()
-
     @on(Select.Changed)
     def choose_project_type(self):
         self.project_type = self.query_one("#project_type", Select).value  # type: ignore
@@ -211,7 +194,7 @@ class ForgeUI(App):
             project_factory.ProjectType.cpp if self.project_type == "cpp" else project_factory.ProjectType.python
         )
         match event.button.id:
-            case "configure_only":
+            case "configure_only":  # TODO: modal screen to issue force command
                 self.forge.initialize_configuration(
                     project_path, project_name, project_type, False, self.init_repo, self.init_submodules, True
                 )
