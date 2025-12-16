@@ -40,6 +40,20 @@ Project generation consists of two steps, which may be combined. First, a config
 >
 >On some Windows PCs, the forge TUI may render with unexpected characters. For a cleaner experience, download and [install](https://support.microsoft.com/en-us/office/add-a-font-b7c5f17c-4426-4b53-967f-455339c564c1) a [Nerd Font](https://www.nerdfonts.com/font-downloads) (such as FiraCode).
 
+### As a Python package
+
+_atheneum-forge_ may be imported as a package dependency directly from git. Include atheneum-forge in your pyproject.toml dependencies list, and set the source as below:
+```
+[tool.uv.sources]
+atheneum-forge = { git = "https://github.com/bigladder/atheneum-forge" }
+```
+
+In your code,
+
+    from atheneum_forge import forge, project_factory
+
+to use the public interface.
+
 ## For developers
 
 For each language to be supported by a project template, the _languages_ directory contains a <language_name> entry. Currently C++ and Python are supported. Each language pack consists of three conceptual pieces:
