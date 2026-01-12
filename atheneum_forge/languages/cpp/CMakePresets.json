@@ -3,7 +3,7 @@
   "configurePresets": [
     {
       "name": "cpp-toolchain-preset",
-      "displayName": "BigLadder 2025 Toolchain Build",
+      "displayName": "Atheneum Toolchain Build",
       "generator": "Visual Studio 17 2022",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
