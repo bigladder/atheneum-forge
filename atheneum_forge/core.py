@@ -11,7 +11,11 @@ from pathlib import Path, PurePath
 from typing import Any
 
 import tomli_w
-import tomllib
+
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib  # type: ignore [no-redef] # for Python <3.11
 from jinja2 import Environment, Template
 
 log = logging.getLogger("forge")
