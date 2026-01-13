@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 import filecmp
 import importlib
 import logging
@@ -14,7 +17,7 @@ class IndentDumper(Dumper):
         return super(IndentDumper, self).increase_indent(flow, False)
 
 
-console_log = logging.getLogger("rich")
+logger = logging.getLogger("forge")
 
 MergeFunction = Callable[[Path, Path], StringIO]
 
@@ -26,7 +29,6 @@ def dict_merge(source_file: Path, destination_file: Path) -> StringIO:
     """
     source_dict, extension = _load_dict(source_file)
     destination_dict, _ = _load_dict(destination_file)
-    print(destination_file)
     _update_destination_dict(source_dict, destination_dict)
     return _dump_str(extension, destination_dict)
 
@@ -57,9 +59,7 @@ def _update_destination_dict(source: dict, destination: dict) -> None:
                         # hard to uniquely identify
                         pass
                 elif isinstance(source[k], podlike) and isinstance(destination[k], podlike):
-                    print(f"Before value for key {k}", destination[k])
                     destination[k] = source[k]  # assume source project has ground truth
-                    print(f"After value for key {k}", destination[k])
                 else:
                     # Repeat comparison one level down until the values are no longer dictionaries
                     _update_destination_dict(source[k], destination[k])

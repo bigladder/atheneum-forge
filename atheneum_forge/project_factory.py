@@ -1,11 +1,17 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 import filecmp
 import logging
 import re
 import shutil
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from subprocess import CalledProcessError
+
+from jinja2 import Environment, FileSystemLoader
 
 from . import core, update
 
@@ -14,7 +20,7 @@ DATA_DIR = (THIS_DIR / "languages").resolve()
 FORGE_CONFIG = "forge.toml"
 
 
-console_log = logging.getLogger("rich")
+logger = logging.getLogger("forge")
 
 
 def underscore(name):
@@ -74,6 +80,11 @@ class GeneratedProject(ABC):
 
         configuration_file = self.target_dir / FORGE_CONFIG
 
+        # Set up the template environment with all the possible template-containing folders
+        template_files = core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"])
+        template_directories = [Path(__file__).parent] + [template.from_path.parent for template in template_files]
+        self.environment = Environment(loader=FileSystemLoader(template_directories), keep_trailing_newline=True)
+
         if not project_name:  # Assume configuration toml exists, find name there
             if not configuration_file.exists():
                 raise FileNotFoundError(
@@ -98,8 +109,8 @@ class GeneratedProject(ABC):
             except (TypeError, RuntimeError, FileNotFoundError):
                 raise RuntimeError("Error while processing config file.")
         else:
-            console_log.info(f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.')
-            raise RuntimeError()
+            logger.info(f'{configuration_file}" already exists. Use [red]--force[/red] to overwrite.')
+            raise RuntimeError(f'{configuration_file}" already exists. Use --force to overwrite.')
 
     def _check_directories(self, project_path: Path) -> None:
         """Ensure that the target (project) directory and config file exist, then collect configuration information.
@@ -124,14 +135,23 @@ class GeneratedProject(ABC):
         if not configuration_file.is_file():
             raise FileNotFoundError(f'Config "{configuration_file}" is not a file.')
 
-    def _process_single_file(  # noqa: PLR0912
-        self, from_path: Path, to_path: Path, strategy: str, config: dict | None, onetime: bool, dry_run: bool
+    def _process_single_file(  # noqa: PLR0912, PLR0913, PLR0915
+        self,
+        from_path: Path,
+        to_path: Path,
+        copyright_text: str,
+        strategy: str,
+        config: dict | None,
+        onetime: bool,
+        dry_run: bool,
     ) -> str:
         """Process a single file from from_path to to_path: copy, update, render, or skip.
 
         Args:
             from_path (Path): path to a file to reference from
             to_path (Path): path to a file to generate/update
+            copyright_text (str):
+            stragety (str):
             config (dict | None): dict of parameters or None. If a dict, treat from_path as template.
             onetime (bool): if True do not regenerate if to_path exists
             dry_run (bool): if True, do a dry run. Don't actually update/generate.
@@ -158,7 +178,9 @@ class GeneratedProject(ABC):
                 if not to_path.exists():
                     if not to_path.parent.exists():
                         to_path.parent.mkdir(parents=True)
-                    shutil.copyfile(from_path, to_path)  # This is always a wholesale COPY, not update/merge.
+                    # This is always a wholesale COPY, not update/merge.
+                    shutil.copyfile(from_path, to_path)
+                    core.prepend_copyright_to_copy(to_path, copyright_text)
                     prefix = f"{'COPY':<{width}}: "
                 elif not filecmp.cmp(from_path, to_path):  # OUT OF DATE
                     update.write_precursors_and_updated_file(strategy, from_path, to_path)
@@ -166,21 +188,24 @@ class GeneratedProject(ABC):
                 else:
                     prefix = f"{'UP-TO-DATE(file)':<{width}}: "
             else:  # If you give this function a config, it's because it contains template params
-                template = None
-                with open(from_path, "r") as fid:
-                    template = fid.read()
-                out = core.render(template, config)  # Render template using config
+                out = copyright_text + self.environment.get_template(from_path.name).render(config)
                 if not to_path.parent.exists():
                     to_path.parent.mkdir(parents=True, exist_ok=True)
                 if to_path.exists():
-                    with open(to_path, "r") as existing:
-                        if existing.read() == out:
-                            prefix = f"{'UP-TO-DATE(file)':<{width}}: "
-                        else:  # OUT OF DATE
-                            update.write_precursors_and_updated_file(strategy, from_path, to_path, out)
-                            prefix = f"{'UPDATE':<{width}}: "
+                    try:
+                        with open(to_path, "r", encoding="utf-8") as existing:  # TODO:  possible for 'existing'
+                            if existing.read() == out:
+                                prefix = f"{'UP-TO-DATE(file)':<{width}}: "
+                            else:  # OUT OF DATE
+                                update.write_precursors_and_updated_file(strategy, from_path, to_path, out)
+                                prefix = f"{'UPDATE':<{width}}: "
+                    except UnicodeDecodeError as u:
+                        raise RuntimeError(
+                            f"{u} while updating file {to_path}. "
+                            "Try first opening the file and saving with UTF-8 encoding."
+                        )
                 else:  # File didn't exist, create (render)
-                    with open(to_path, "w") as fid:
+                    with open(to_path, "w", encoding="utf-8") as fid:
                         fid.write(out)
                     prefix = f"{'RENDER':<{width}}: "
         elif config is None:
@@ -219,6 +244,61 @@ class GeneratedProject(ABC):
             if not self._is_git_repo()
             else []
         )
+
+    @dataclass
+    class CommentedTomlEntry:
+        comment: str
+        parameter: str
+        value: str
+
+        def __str__(self):
+            return f"{self.comment}{self.parameter} = {self.value}\n"
+
+    def edit_forge_config(self, edits: dict[str, str]) -> None:  # noqa: PLR0912 too-many-branches
+        """
+        Allow programmatic changes to the project configuration file, to take effect before project generation.
+        """
+        configuration_changes: dict[str, str] = {}
+        for key, value in edits.items():
+            if key in self.manifest["template-parameters"] and not self.manifest["template-parameters"][key].get(
+                "private"
+            ):
+                configuration_changes[key] = value
+            else:
+                logger.info("Values may be assigned to the following items:")
+                logger.info(list(self.manifest["template-parameters"].keys()))
+        try:
+            forge_config_file: Path = self.target_dir / FORGE_CONFIG
+            # First, categorize the config file entries into active and inactive (commented) entries
+            commented_toml: list[GeneratedProject.CommentedTomlEntry | str] = []
+            with open(forge_config_file, "r", encoding="utf-8") as config_file:
+                for line in config_file:
+                    config_line = re.match(r"(?P<comment>(^# )?)(?P<parameter>\S*) = (?P<value>\S*)", line)
+                    if config_line:
+                        commented_toml.append(
+                            GeneratedProject.CommentedTomlEntry(
+                                config_line.group("comment"), config_line.group("parameter"), config_line.group("value")
+                            )
+                        )
+                    else:
+                        commented_toml.append(line)
+            with open(forge_config_file, "w", encoding="utf-8") as edited:
+                for entry in commented_toml:  # Preserve line-ordering from original file
+                    if not isinstance(entry, GeneratedProject.CommentedTomlEntry):  # e.g. "[[deps]]"
+                        edited.write(entry)
+                    else:
+                        for i, (parameter, new_value) in enumerate(configuration_changes.items()):
+                            if parameter in entry.parameter:  # Are any of the requested changes in the current line?
+                                entry.value = f'"{new_value}"'  # Quotes added for compatibility with existing entries
+                                entry.comment = ""
+                                edited.write(str(entry))
+                                break
+                            elif i == len(configuration_changes) - 1:
+                                edited.write(str(entry))
+            # Re-load to memory
+            self.configuration = core.read_toml(forge_config_file)
+        except FileNotFoundError:
+            pass
 
     @abstractmethod
     def init_pre_commit(self) -> list:
@@ -265,17 +345,28 @@ class GeneratedCPP(GeneratedProject):
                 for file_type in f.from_path.suffixes:
                     if file_type.lstrip(".") in self.manifest["update-strategies"]:
                         update_type = self.manifest["update-strategies"][file_type.lstrip(".")]
+                copyright_text = (
+                    core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                    if f.add_owner_copyright
+                    else ""
+                )
                 result.append(
                     self._process_single_file(
-                        f.from_path, f.to_path, update_type, self.configuration, f.onetime, dry_run
+                        f.from_path, f.to_path, copyright_text, update_type, self.configuration, f.onetime, dry_run
                     )
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
+                copyright_text = (
+                    core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                    if f.add_owner_copyright
+                    else ""
+                )
                 result.append(
                     self._process_single_file(
                         f.from_path,
                         f.to_path,
+                        copyright_text,
                         self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
                         None,
                         f.onetime,
@@ -341,6 +432,7 @@ class GeneratedPython(GeneratedProject):
                 self._process_single_file(
                     f.from_path,
                     f.to_path,
+                    "",
                     self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
                     None,
                     f.onetime,
@@ -350,10 +442,16 @@ class GeneratedPython(GeneratedProject):
         # TODO: Add __init__.py under project directory
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
+                copyright_text = (
+                    core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                    if f.add_owner_copyright
+                    else ""
+                )
                 result.append(
                     self._process_single_file(
                         f.from_path,
                         f.to_path,
+                        copyright_text,
                         self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
                         None,
                         f.onetime,
@@ -362,10 +460,16 @@ class GeneratedPython(GeneratedProject):
                 )
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"]):
             if f.to_path.resolve() not in self.do_not_update:
+                copyright_text = (
+                    core.render_copyright_string(self.environment, self.configuration, f.to_path)
+                    if f.add_owner_copyright
+                    else ""
+                )
                 result.append(
                     self._process_single_file(
                         f.from_path,
                         f.to_path,
+                        copyright_text,
                         self.manifest["update-strategies"][f.from_path.suffix.lstrip(".")],
                         self.configuration,
                         f.onetime,

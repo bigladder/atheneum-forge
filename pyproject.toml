@@ -12,10 +12,12 @@ dependencies = [
     "tomli-w>=1.1.0,<2",
     "pyyaml>=6.0.0",
     "yamlcore",
+    "textual"
 ]
 
 [project.scripts]
-forge = "atheneum_forge.main:app"
+forge = "atheneum_forge.main:main"
+forge-cli ="atheneum_forge.main_cli:app"
 
 [dependency-groups]
 dev = [
@@ -23,7 +25,8 @@ dev = [
     "pytest",
     "python-lsp-server>=1.12.0,<2",
     "pre-commit",
-    "mypy"
+    "mypy",
+    "textual-dev"
 ]
 
 [tool.ruff]

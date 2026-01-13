@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 if(CMAKE_SYSTEM_NAME STREQUAL Windows)
 
     # Set the Windows SDK version (e.g., 10.0.22000.0)

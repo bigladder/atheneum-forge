@@ -1,0 +1,35 @@
+    #layout {
+        grid-size: 3;
+        grid-gutter: 1 2;
+    }
+    .forge-elements {
+        background: rebeccapurple;
+        border: solid white;
+        margin: 1 2;
+        width: 90%;
+    }
+    .forge-buttons {
+        background: rebeccapurple;
+        margin: 1 2;
+    }
+    Checkbox {
+        background: $background;
+        color: $text;
+        margin: 0 1;
+    }
+    Checkbox:disabled {
+        color: $text-disabled;
+    }
+    /*From https://stackoverflow.com/questions/78814860/adding-status-text-to-a-textual-footer*/
+    Horizontal#footer-outer {
+        height: 1;
+        dock: bottom;
+    }
+    Horizonal#footer-inner {
+        width: 60%;
+    }
+    Static#status_text {
+        width: 40%;
+        text-align: right;
+    }
+    /**/

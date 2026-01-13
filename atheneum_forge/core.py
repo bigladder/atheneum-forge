@@ -1,16 +1,24 @@
+# SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
+# SPDX-License-Identifier: BSD-3-Clause
+
 import logging
 import re
 import subprocess
+from collections import defaultdict
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path, PurePath
 from typing import Any
 
 import tomli_w
-import tomllib
-from jinja2 import Template
 
-log = logging.getLogger("rich")
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib  # type: ignore [no-redef] # for Python <3.11
+from jinja2 import Environment, Template
+
+log = logging.getLogger("forge")
 
 UNDEFAULTED_PARAMETERS = {"project_name", "deps"}
 RECOGNIZED_SRC_DIRS = {"src", "include", "test", "app"}
@@ -23,6 +31,7 @@ DEFAULT_LINE_COMMENTS_BY_EXT = {
     "CMakeLists.txt": "# ",
     "*.py": "# ",
 }
+LINE_COMMENTS_BY_EXT = defaultdict(lambda: "#", {".cpp": "//", ".h": "//", ".py": "#"})
 
 
 def render(template: str, config: dict) -> str:
@@ -76,6 +85,7 @@ class ProjectFile:
     from_path: Path
     to_path: Path
     onetime: bool
+    add_owner_copyright: bool
 
 
 def collect_source_files(source_directory: Path, target_directory: Path, file_directives: list) -> list[ProjectFile]:
@@ -93,6 +103,7 @@ def collect_source_files(source_directory: Path, target_directory: Path, file_di
 
     for f in file_directives:
         onetime = f.get("onetime", False)
+        add_owner_copyright = f.get("add_owner_copyright", False)
 
         to_path_with_glob = build_path(target_directory, f["to"])
         if to_path_with_glob["glob"] is not None:  # TODO: Errors in the manifest shouldn't read out to the user!
@@ -119,7 +130,7 @@ def collect_source_files(source_directory: Path, target_directory: Path, file_di
             else:
                 # Single file output, same name
                 to_name = to_path / from_path.name
-            project_files.append(ProjectFile(from_path, to_name, onetime))
+            project_files.append(ProjectFile(from_path, to_name, onetime, add_owner_copyright))
         else:
             if not to_path.exists():
                 to_path.mkdir(parents=True, exist_ok=True)
@@ -127,7 +138,7 @@ def collect_source_files(source_directory: Path, target_directory: Path, file_di
             for fpath in from_path.glob(glob):
                 if fpath.is_dir():
                     continue
-                project_files.append(ProjectFile(fpath, to_path / fpath.name, onetime))
+                project_files.append(ProjectFile(fpath, to_path / fpath.name, onetime, add_owner_copyright))
     return project_files
 
 
@@ -215,7 +226,7 @@ def create_config_toml(manifest: dict, project_name: str, all_files: set | None 
     """.strip()
     )
     postfix = "\n".join(dep_strings)
-    return "\n".join(configuration_entries) + "\n" + postfix
+    return "\n".join(configuration_entries) + "\n" + postfix + "\n"
 
 
 def merge_defaults_into_config(config: dict, manifest_defaults: dict, target_files: set | None = None) -> dict:  # noqa: PLR0912
@@ -286,18 +297,18 @@ def read_toml(input_file: Path) -> dict:
         raise FileNotFoundError(f"{input_file} does not exist.")
 
 
-def read_config(config: dict, parameters: dict, all_files: set | None = None) -> dict:
-    """Mix defaults from manifest's parameters section into the configuration toml data.
+# def read_config(config: dict, parameters: dict, all_files: set | None = None) -> dict:
+#     """Mix defaults from manifest's parameters section into the configuration toml data.
 
-    Args:
-        config (dict):
-        parameters (dict):
-        all_files (set | None, optional):
+#     Args:
+#         config (dict):
+#         parameters (dict):
+#         all_files (set | None, optional):
 
-    Returns:
-        dict: _description_
-    """
-    return merge_defaults_into_config(config, parameters, all_files)
+#     Returns:
+#         dict: _description_
+#     """
+#     return merge_defaults_into_config(config, parameters, all_files)
 
 
 def list_files_in(dir_path: Path) -> set:
@@ -412,7 +423,7 @@ def run_commands(commands: list) -> None:
             log.info(result.stdout)  # Only reached if success code (0) returned
 
 
-def gen_copyright(config: dict, copy_template: str, all_files: set) -> dict:
+def gen_copyright(config: dict, copy_template: str, all_files: set[Path]) -> dict:
     """
     Generate copyright headers for the file tree.
     """
@@ -424,6 +435,38 @@ def gen_copyright(config: dict, copy_template: str, all_files: set) -> dict:
             if PurePath(file_name).match(match_str):
                 result[file_name] = list(map(lambda line: prefix + line, copy_lines))
     return result
+
+
+def render_copyright_string(environment: Environment, config: dict, for_file: Path) -> str:
+    """
+    Generate copyright headers for the single file.
+    """
+    copyright_template_file = "copyright.j2"
+    template = environment.get_template(copyright_template_file)
+    config.update({"comment_characters": LINE_COMMENTS_BY_EXT[PurePath(for_file).suffix]})
+    return template.render(config)
+
+
+def prepend_copyright_to_copy(from_path, copyright_text):
+    if copyright_text:
+        copyright_indicators = ["Copyright", "copyright", "(C)", "(c)", "©"]
+        already_copyrighted = False
+        try:
+            with open(from_path, "r", encoding="utf-8") as from_file:
+                # Allow copyright information from the first two lines
+                head = [next(from_file) for _ in range(2)]
+                for line in head:
+                    already_copyrighted = any(c in line for c in copyright_indicators)
+                    if already_copyrighted:
+                        break
+        except UnicodeDecodeError as u:
+            raise RuntimeError(f"{u} in file {from_path}")
+        with open(from_path, "r+", encoding="utf-8") as f:
+            contents = f.read()
+            f.seek(0)
+            if not already_copyrighted:
+                f.write(copyright_text)
+            f.write(contents)
 
 
 def update_copyright(file_content: str, copy_lines: list) -> str:
