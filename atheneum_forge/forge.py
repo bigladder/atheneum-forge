@@ -110,7 +110,7 @@ class AtheneumForge:
         return self.generate_project_files(project_path, False, False)
 
     def add_owner_copyright(self, source_path: Path) -> None:
-        env = Environment(loader=FileSystemLoader(Path(__file__).parent), keep_trailing_newline=True)
+        env = Environment(loader=FileSystemLoader(Path(__file__).parent, encoding="utf-8"), keep_trailing_newline=True)
         for file in source_path.iterdir():
             if self.generator:
                 core.prepend_copyright_to_copy(

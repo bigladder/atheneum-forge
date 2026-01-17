@@ -83,7 +83,9 @@ class GeneratedProject(ABC):
         # Set up the template environment with all the possible template-containing folders
         template_files = core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"])
         template_directories = [Path(__file__).parent] + [template.from_path.parent for template in template_files]
-        self.environment = Environment(loader=FileSystemLoader(template_directories), keep_trailing_newline=True)
+        self.environment = Environment(
+            loader=FileSystemLoader(template_directories, encoding="utf-8"), keep_trailing_newline=True
+        )
 
         if not project_name:  # Assume configuration toml exists, find name there
             if not configuration_file.exists():
