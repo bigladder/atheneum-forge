@@ -73,8 +73,8 @@ def text_merge(source_file: Path, destination_file: Path) -> StringIO:
     """
     if filecmp.cmp(destination_file, source_file):
         return StringIO()
-    with open(destination_file, "r") as existing:
-        with open(source_file, "r") as replacement:
+    with open(destination_file, "r", encoding="utf-8") as existing:
+        with open(source_file, "r", encoding="utf-8") as replacement:
             existing_lines = existing.readlines()
             replacement_lines = replacement.readlines()
             _update_destination_text_list(replacement_lines, existing_lines)
