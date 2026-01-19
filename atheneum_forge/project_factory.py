@@ -95,7 +95,10 @@ class GeneratedProject(ABC):
             else:
                 self.configuration = core.read_toml(configuration_file)
                 self.do_not_update = set(
-                    [Path(self.target_dir, exclude_file) for exclude_file in self.configuration.get("skip", [])]
+                    [
+                        Path(self.target_dir, exclude_file).resolve()
+                        for exclude_file in self.configuration.get("skip", [])
+                    ]
                 )
         elif not configuration_file.exists() or force:  # Create or overwrite existing configuration
             config_str = core.create_config_toml(self.manifest, project_name)
