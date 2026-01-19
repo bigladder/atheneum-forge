@@ -202,10 +202,7 @@ class GeneratedProject(ABC):
                                 update.write_precursors_and_updated_file(strategy, from_path, to_path, out)
                                 prefix = f"{'UPDATE':<{width}}: "
                     except UnicodeDecodeError as u:
-                        raise RuntimeError(
-                            f"{u} while updating file {to_path}. "
-                            "Try first opening the file and saving with UTF-8 encoding."
-                        )
+                        raise RuntimeError(f"{u} while updating file {to_path}. ")
                 else:  # File didn't exist, create (render)
                     with open(to_path, "w", encoding="utf-8") as fid:
                         fid.write(out)
