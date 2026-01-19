@@ -357,6 +357,8 @@ class GeneratedCPP(GeneratedProject):
                         f.from_path, f.to_path, copyright_text, update_type, self.configuration, f.onetime, dry_run
                     )
                 )
+            else:
+                logger.info(f"{f.to_path} ignored as per configuration instructions.")
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
                 copyright_text = (
@@ -375,6 +377,8 @@ class GeneratedCPP(GeneratedProject):
                         dry_run,
                     )
                 )
+            else:
+                logger.info(f"{f.to_path} ignored as per configuration instructions.")
 
         return result
 
