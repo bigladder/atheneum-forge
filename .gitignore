@@ -21,5 +21,6 @@ venv/
 *.theirs
 *.ours
 
+todo.md
 # TODO: mkdocs build files
 # TODO: sphinx build files
