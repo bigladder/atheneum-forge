@@ -41,7 +41,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("forge")
 
 formatter = logging.Formatter("%(asctime)s  [%(levelname)s]   %(message)s")
-file_handler = logging.FileHandler("atheneum_forge_log.txt", mode="w")
+file_handler = logging.FileHandler("atheneum_forge.log", mode="w")
 file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 

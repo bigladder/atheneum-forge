@@ -33,7 +33,7 @@ template = [
 ]
 [template-parameters]
 clang_format_version = {type="int", default=16}
-cpp_std = {type="enum", options=["17", "20"], default="20"}
+cpp_std = {type="enum", options=["17", "20"], default="20", required=true}
 files_app = {type="str:glob", default="app/[a-zA-Z]*.cpp", private=true}
 files_app_config = {type="str:glob", default="app/[a-zA-Z]*.*.in", private=true}
 files_src = {type="str:glob", default="src/[a-zA-Z]*.cpp", private=true}

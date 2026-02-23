@@ -444,7 +444,7 @@ def render_copyright_string(environment: Environment, config: dict, for_file: Pa
     copyright_template_file = "copyright.j2"
     template = environment.get_template(copyright_template_file)
     config.update({"comment_characters": LINE_COMMENTS_BY_EXT[PurePath(for_file).suffix]})
-    return template.render(config)
+    return template.render(config).encode("utf-8").decode("utf-8")
 
 
 def prepend_copyright_to_copy(from_path, copyright_text):

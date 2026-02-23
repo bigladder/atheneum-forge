@@ -83,7 +83,9 @@ class GeneratedProject(ABC):
         # Set up the template environment with all the possible template-containing folders
         template_files = core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["template"])
         template_directories = [Path(__file__).parent] + [template.from_path.parent for template in template_files]
-        self.environment = Environment(loader=FileSystemLoader(template_directories), keep_trailing_newline=True)
+        self.environment = Environment(
+            loader=FileSystemLoader(template_directories, encoding="utf-8"), keep_trailing_newline=True
+        )
 
         if not project_name:  # Assume configuration toml exists, find name there
             if not configuration_file.exists():
@@ -93,7 +95,10 @@ class GeneratedProject(ABC):
             else:
                 self.configuration = core.read_toml(configuration_file)
                 self.do_not_update = set(
-                    [Path(self.target_dir, exclude_file) for exclude_file in self.configuration.get("skip", [])]
+                    [
+                        Path(self.target_dir, exclude_file).resolve()
+                        for exclude_file in self.configuration.get("skip", [])
+                    ]
                 )
         elif not configuration_file.exists() or force:  # Create or overwrite existing configuration
             config_str = core.create_config_toml(self.manifest, project_name)
@@ -200,10 +205,7 @@ class GeneratedProject(ABC):
                                 update.write_precursors_and_updated_file(strategy, from_path, to_path, out)
                                 prefix = f"{'UPDATE':<{width}}: "
                     except UnicodeDecodeError as u:
-                        raise RuntimeError(
-                            f"{u} while updating file {to_path}. "
-                            "Try first opening the file and saving with UTF-8 encoding."
-                        )
+                        raise RuntimeError(f"{u} while updating file {to_path}. ")
                 else:  # File didn't exist, create (render)
                     with open(to_path, "w", encoding="utf-8") as fid:
                         fid.write(out)
@@ -355,6 +357,8 @@ class GeneratedCPP(GeneratedProject):
                         f.from_path, f.to_path, copyright_text, update_type, self.configuration, f.onetime, dry_run
                     )
                 )
+            else:
+                logger.info(f"{f.to_path} ignored as per configuration instructions.")
         for f in core.collect_source_files(self.source_data_dir, self.target_dir, self.manifest["static"]):
             if f.to_path.resolve() not in self.do_not_update:
                 copyright_text = (
@@ -373,6 +377,8 @@ class GeneratedCPP(GeneratedProject):
                         dry_run,
                     )
                 )
+            else:
+                logger.info(f"{f.to_path} ignored as per configuration instructions.")
 
         return result
 

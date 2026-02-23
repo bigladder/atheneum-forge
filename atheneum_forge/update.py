@@ -73,8 +73,8 @@ def text_merge(source_file: Path, destination_file: Path) -> StringIO:
     """
     if filecmp.cmp(destination_file, source_file):
         return StringIO()
-    with open(destination_file, "r") as existing:
-        with open(source_file, "r") as replacement:
+    with open(destination_file, "r", encoding="utf-8") as existing:
+        with open(source_file, "r", encoding="utf-8") as replacement:
             existing_lines = existing.readlines()
             replacement_lines = replacement.readlines()
             _update_destination_text_list(replacement_lines, existing_lines)
@@ -167,10 +167,10 @@ def write_precursors_and_updated_file(
     if not from_contents:
         shutil.copyfile(from_path, theirs)
     else:
-        with open(theirs, "w") as their_render:
+        with open(theirs, "w", encoding="utf-8") as their_render:
             their_render.write(from_contents)
 
     buffer = update_single_file(strategy_name, theirs, ours)
-    with open(to_path, "w") as updated_file:
+    with open(to_path, "w", encoding="utf-8") as updated_file:
         buffer.seek(0)
         shutil.copyfileobj(buffer, updated_file)
