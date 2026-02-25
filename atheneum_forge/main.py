@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
-from rich.logging import RichHandler
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Grid, Horizontal, VerticalGroup
@@ -113,7 +112,7 @@ class ForgeUI(App):
                 pass
             with TabPane("Log", id="log_pane"):
                 for handler in logger.handlers:
-                    if isinstance(handler, RichHandler):
+                    if handler.name == "richHandler-tui":
                         yield handler.console  # type: ignore #(actual type "Console", expected type "Widget")
 
     # def on_mount(self) -> None: #TODO: Alternative to rich_log_handler that might be more canonical
