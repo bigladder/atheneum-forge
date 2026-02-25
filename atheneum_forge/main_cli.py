@@ -6,45 +6,11 @@ from pathlib import Path
 from subprocess import CalledProcessError
 
 import typer
-from rich.console import Console
-from rich.highlighter import RegexHighlighter
-from rich.logging import RichHandler
-from rich.theme import Theme
 from typing_extensions import Annotated
 
 from atheneum_forge import core, project_factory
 
-
-class FileStatusHighlighter(RegexHighlighter):
-    """Apply style to generator and renderer messages."""
-
-    base_style = "example."
-    highlights = [r"(?P<status_copy>COPY)", r"(?P<status_render>RENDER)", r"(?P<status_skipped>SKIPPED)"]
-
-
-console = Console(
-    theme=Theme(
-        {
-            "example.status_copy": "spring_green3",
-            "example.status_render": "dark_magenta",
-            "example.status_skipped": "grey53",
-        }
-    )
-)
-
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(message)s",
-    handlers=[RichHandler(show_time=False, highlighter=FileStatusHighlighter(), console=console, markup=True)],
-)
-
 console_log = logging.getLogger("forge")
-
-# Optional file logger:
-# formatter = logging.Formatter('%(asctime)s  [%(levelname)s]   %(message)s')
-# file_handler = FileHandler("atheneum_forge_log.txt", mode='w')
-# file_handler.setFormatter(formatter)
-# console_log.addHandler(file_handler)
 
 app = typer.Typer(add_completion=False, pretty_exceptions_enable=False)
 
