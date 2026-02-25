@@ -1,1 +1,1 @@
-from atheneum_forge import logger_cfg
+from atheneum_forge import logging_setup
