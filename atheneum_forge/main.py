@@ -23,16 +23,6 @@ from textual.widgets import (
 
 from .forge import AtheneumForge, project_factory
 
-# TODO: Explore this idea for a Textual logging handler
-# class RichLogHandler(logging.Handler):
-#     def __init__(self, rich_log_widget: RichLog):
-#         super().__init__()
-#         self.rich_log_widget = rich_log_widget
-
-#     def emit(self, record):
-#         msg = self.format(record)
-#         self.rich_log_widget.write(msg)
-
 logger = logging.getLogger("forge")
 
 
@@ -114,13 +104,6 @@ class ForgeUI(App):
                 for handler in logger.handlers:
                     if handler.name == "richHandler-tui":
                         yield handler.console  # type: ignore #(actual type "Console", expected type "Widget")
-
-    # def on_mount(self) -> None: #TODO: Alternative to rich_log_handler that might be more canonical
-    #     log_widget = self.query_one("#log_window", RichLog)
-    #     rich_log_handler = RichLogHandler(log_widget)
-    #     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    #     rich_log_handler.setFormatter(formatter)
-    #     logger.addHandler(rich_log_handler)
 
     @on(DirectoryTree.DirectorySelected)
     def get_project_directory(self, message: DirectoryTree.DirectorySelected) -> None:
