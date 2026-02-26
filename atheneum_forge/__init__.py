@@ -1,0 +1,1 @@
+from atheneum_forge import logging_setup

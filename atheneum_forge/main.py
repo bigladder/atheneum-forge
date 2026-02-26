@@ -5,11 +5,9 @@ import logging
 from pathlib import Path
 from typing import Iterable
 
-from rich.logging import RichHandler
 from textual import on
 from textual.app import App, ComposeResult
 from textual.containers import Grid, Horizontal, VerticalGroup
-from textual.widget import Widget
 from textual.widgets import (
     Button,
     Checkbox,
@@ -17,7 +15,6 @@ from textual.widgets import (
     Footer,
     Header,
     Input,
-    RichLog,
     Select,
     Static,
     TabbedContent,
@@ -26,50 +23,7 @@ from textual.widgets import (
 
 from .forge import AtheneumForge, project_factory
 
-# TODO: Explore this idea for a Textual logging handler
-# class RichLogHandler(logging.Handler):
-#     def __init__(self, rich_log_widget: RichLog):
-#         super().__init__()
-#         self.rich_log_widget = rich_log_widget
-
-#     def emit(self, record):
-#         msg = self.format(record)
-#         self.rich_log_widget.write(msg)
-
-
-logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("forge")
-
-formatter = logging.Formatter("%(asctime)s  [%(levelname)s]   %(message)s")
-file_handler = logging.FileHandler("atheneum_forge.log", mode="w")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
-
-
-# Lovely little hack from https://github.com/Textualize/textual/discussions/3568
-# Derive a console from RichLog, but pretend it has the members of Console so they
-# can be manipulated for the RichHandler
-class LoggingConsole(RichLog):
-    """A RichLog widget that acts as a RichHandler console."""
-
-    file = False
-    console: Widget
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.file = False  # Essential for RichHandler to treat it as a console
-
-    def print(self, content):
-        """Overrides RichHandler's print method to write to the RichLog."""
-        self.write(content)
-
-
-rich_log_handler = RichHandler(
-    console=LoggingConsole(),  # type: ignore
-    rich_tracebacks=True,
-)
-rich_log_handler.setFormatter(formatter)
-logger.addHandler(rich_log_handler)
 
 
 class FolderTree(DirectoryTree):
@@ -147,14 +101,9 @@ class ForgeUI(App):
             with TabPane("Update", id="update_pane"):
                 pass
             with TabPane("Log", id="log_pane"):
-                yield rich_log_handler.console  # type: ignore #(actual type "Console", expected type "Widget")
-
-    # def on_mount(self) -> None: #TODO: Alternative to rich_log_handler that might be more canonical
-    #     log_widget = self.query_one("#log_window", RichLog)
-    #     rich_log_handler = RichLogHandler(log_widget)
-    #     formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
-    #     rich_log_handler.setFormatter(formatter)
-    #     logger.addHandler(rich_log_handler)
+                for handler in logger.handlers:
+                    if handler.name == "richHandler-tui":
+                        yield handler.console  # type: ignore #(actual type "Console", expected type "Widget")
 
     @on(DirectoryTree.DirectorySelected)
     def get_project_directory(self, message: DirectoryTree.DirectorySelected) -> None:
