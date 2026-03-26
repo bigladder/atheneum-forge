@@ -1,6 +1,6 @@
 [project]
 name = "atheneum-forge"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Project boilerplate and build system scaffolding generation and maintenance."
 authors = [{ name = "Big Ladder Software", email = "info@bigladdersoftware.com" }]
 requires-python = ">=3.10"
@@ -60,8 +60,14 @@ module = "atheneum_forge.*"
 disable_error_code = ["annotation-unchecked","import"]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
+
+[tool.hatch.build.hooks.vcs]
+version-file = "atheneum_forge/_version.py"
 
 [tool.hatch.build]
 only-include = ["atheneum_forge"]
