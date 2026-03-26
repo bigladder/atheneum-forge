@@ -1,1 +1,2 @@
 from atheneum_forge import logging_setup
+from atheneum_forge._version import __version__

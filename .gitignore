@@ -1,6 +1,7 @@
 build/
 dist/
 *.egg*/
+atheneum_forge/_version.py
 
 .doit.*
 
