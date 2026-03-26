@@ -1,10 +1,6 @@
 [project]
 name = "atheneum-forge"
-<<<<<<< HEAD
 dynamic = ["version"]
-=======
-version = "0.9.0"
->>>>>>> da9ed959e11972fa08e376fd0def5e04a6cde479
 description = "Project boilerplate and build system scaffolding generation and maintenance."
 authors = [{ name = "Big Ladder Software", email = "info@bigladdersoftware.com" }]
 requires-python = ">=3.10"
