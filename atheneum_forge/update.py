@@ -51,9 +51,9 @@ def _update_destination_dict(source: dict, destination: dict) -> None:
                 if k not in existing_keys:
                     destination[k] = source[k]  # If the key doesn't exist, insert the subdict associated with the key
                 elif isinstance(source[k], list) and isinstance(destination[k], list):
-                    # If list of strings, order probably(?) doesn't matter
+                    # If list of strings, maintain alphabetical order
                     if all(isinstance(x, str) for x in source[k]) and all(isinstance(x, str) for x in destination[k]):
-                        destination[k] = list(set(destination[k] + source[k]))
+                        destination[k] = sorted(list(set(destination[k] + source[k])))
                     else:
                         # If list of dicts, not sure how to combine. Order likely matters; dicts may be
                         # hard to uniquely identify
