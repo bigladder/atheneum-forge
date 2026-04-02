@@ -53,26 +53,6 @@ template = [
         assert "to" in s
 
 
-# def test_generate_task():
-#     toml_str = """
-# static = [
-#   {from=".clang-format", to="."},
-#   {from=".gitignore", to="."},
-# ]
-# template = [
-#   {from="CMakeLists.txt", to="."}
-# ]
-#     """
-#     manifest = af.read_manifest(toml_str)
-#     repo_dir = "./data"
-#     target = "../new_repo"
-#     config = {
-#         "project_name": "Atheneum",
-#     }
-#     results = af.generate("Atheneum", repo_dir, target, manifest, config, dry_run=True)
-#     assert len(results) == 3  # noqa: PLR2004
-
-
 def test_create_config():
     toml_str = """
 static = [
@@ -109,40 +89,6 @@ project_name = "Atheneum"
     """.strip()
 
     assert expected == actual.strip()
-
-
-# def test_merge_config_with_defaults():
-#     manifest_toml = """
-# [template-parameters]
-# project_name = {type="str"}
-# start_year = {type="int:year", default="parameter:year"}
-# year = {type="int:year", default="current_year()"}
-# version_major = {type="int:>=0", default=0}
-# version_minor = {type="int:>=0", default=1}
-# version_patch = {type="int:>=0", default=0}
-# use_app = {type="bool", default=false}
-#     """
-#     manifest = af.read_manifest(manifest_toml)
-#     config_toml = """
-# project_name = "bob"
-# start_year = 2022
-# # use_app = false
-# # version_major = 0
-# # version_minor = 1
-# # version_patch = 0
-# # year = 2024
-#     """
-#     actual = af.read_config(tomllib.loads(config_toml), manifest["template-parameters"])
-#     expected = {
-#         "project_name": "bob",
-#         "start_year": 2022,
-#         "use_app": False,
-#         "version_major": 0,
-#         "version_minor": 1,
-#         "version_patch": 0,
-#         "year": datetime.now().year,
-#     }
-#     assert actual == expected
 
 
 def test_build_path():
@@ -331,35 +277,6 @@ def test_setup_vendor():
         for ca, ce in zip(actual[idx]["cmds"], expected[idx]["cmds"]):  # type: ignore
             assert ca == ce
     assert actual == expected
-
-
-# def test_gen_copyright():
-#     copy_template = (
-#         "COPYRIGHT (C) {% if start_year is defined and start_year != year %}{{ start_year }}-{% endif %}{{ year }} US"
-#     )
-#     year = datetime.now().year
-#     start_year = 2020
-#     params = {"year": year, "start_year": start_year}
-#     all_files = {
-#         Path("README.md"),
-#         Path("src/a.cpp"),
-#         Path("src/b.cpp"),
-#         Path("src/c.cpp"),
-#         Path("src/hidden.h"),
-#         Path("app/abc.cpp"),
-#         Path("include/abc/abc.h"),
-#     }
-#     expected_copy = f"// COPYRIGHT (C) {start_year}-{year} US"
-#     expected = {
-#         "src/a.cpp": [expected_copy],
-#         "src/b.cpp": [expected_copy],
-#         "src/c.cpp": [expected_copy],
-#         "src/hidden.h": [expected_copy],
-#         "app/abc.cpp": [expected_copy],
-#         "include/abc/abc.h": [expected_copy],
-#     }
-#     actual = core.gen_copyright(params, copy_template, all_files)
-#     assert actual == expected
 
 
 def test_render_copyright_template():
