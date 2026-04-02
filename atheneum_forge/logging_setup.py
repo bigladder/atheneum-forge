@@ -3,7 +3,6 @@ import logging.config
 
 from rich.console import Console
 from rich.highlighter import RegexHighlighter
-from rich.logging import RichHandler
 from rich.theme import Theme
 from textual.widget import Widget
 from textual.widgets import RichLog
@@ -58,14 +57,14 @@ config = {
             "delay": True,
         },
         "richHandler-tui": {
-            "class": RichHandler,
+            "class": "rich.logging.RichHandler",
             "level": "INFO",
             "console": LoggingConsole(),
             "rich_tracebacks": True,
             "formatter": "defaultFormatter",
         },
         "richHandler-cli": {
-            "class": RichHandler,
+            "class": "rich.logging.RichHandler",
             "level": "INFO",
             "show_time": False,
             "highlighter": FileStatusHighlighter(),
