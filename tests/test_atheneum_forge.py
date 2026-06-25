@@ -1,5 +1,4 @@
 import logging
-import os
 from datetime import datetime
 from pathlib import Path, PurePath
 
@@ -302,8 +301,7 @@ def test_render_copyright_template():
     assert actual == expected_copy
 
 
-# TODO: This test has File IO - separate
-def test_prepend_copyright():
+def test_prepend_copyright(tmp_path):
     file_content = """
 #include <iostream>
 int main(void) {
@@ -311,21 +309,16 @@ int main(void) {
   return 0;
 }
     """.strip()
-    cpp_file = Path(__file__).parent / "test_prepend_copyright.cpp"
-    with open(cpp_file, "w", encoding="utf-8") as f:
-        f.write(file_content)
+    cpp_file = tmp_path / "test_prepend_copyright.cpp"
+    cpp_file.write_text(file_content, encoding="utf-8")
     copyright_text = "// © Big Ladder Software\n"
     core.prepend_copyright_to_copy(cpp_file, copyright_text)
-    with open(cpp_file, "r", encoding="utf-8") as readback:
-        actual = readback.read()
-        expected = copyright_text + file_content
-        assert actual == expected
-        print(actual)
-    os.remove(cpp_file)
+    actual = cpp_file.read_text(encoding="utf-8")
+    expected = copyright_text + file_content
+    assert actual == expected
 
 
-# TODO: This test has File IO - separate out
-def test_do_not_prepend_copyright():
+def test_do_not_prepend_copyright(tmp_path):
     file_content = """
 // © 2024 US
 #include <iostream>
@@ -334,16 +327,13 @@ int main(void) {
   return 0;
 }
     """.strip()
-    cpp_file = Path(__file__).parent / "test_prepend_copyright.cpp"
-    with open(cpp_file, "w", encoding="utf-8") as f:
-        f.write(file_content)
+    cpp_file = tmp_path / "test_prepend_copyright.cpp"
+    cpp_file.write_text(file_content, encoding="utf-8")
     copyright_text = "// Copyright 2025 Big Ladder Software\n"
     core.prepend_copyright_to_copy(cpp_file, copyright_text)
-    with open(cpp_file, "r", encoding="utf-8") as readback:
-        actual = readback.read()
-        expected = file_content
-        assert actual == expected
-    os.remove(cpp_file)
+    actual = cpp_file.read_text(encoding="utf-8")
+    expected = file_content
+    assert actual == expected
 
 
 def test_update_copyright():

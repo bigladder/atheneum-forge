@@ -33,6 +33,7 @@ dev = [
 line-length = 120
 
 [tool.ruff.lint]
+preview = true # enable RUF027 and others
 select = [
     "E",  # pycodestyle errors (see https://docs.astral.sh/ruff/rules/#pycodestyle-e-w)
     "F",  # pyflakes (see https://docs.astral.sh/ruff/rules/#pyflakes-f)
