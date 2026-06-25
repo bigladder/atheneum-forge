@@ -7,9 +7,10 @@ if sys.version_info >= (3, 12):
     from typing import override
 else:
     from typing_extensions import override
+
 import logging
 from pathlib import Path
-from typing import Iterable, override
+from typing import Iterable
 
 from textual import on
 from textual.app import App, ComposeResult
