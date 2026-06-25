@@ -79,26 +79,44 @@ def initialize_configuration(  # noqa: PLR0913, PLR0917
     Generate a directory and empty config file for the given project type. (Existing
     configuation files will not be overwritten without the --force flag.)
     """
-    try:
-        generator: project_factory.GeneratedProject | None
-        if type == ProjType.none:
-            # We'd like 'type' to be specified as an optional argument, but a "valid" default could have
-            # unintended consequences.
-            console_log.info("Please specify a valid type (use [red]--help[/red] for options).")
-            raise typer.Exit(code=1)
-        elif type == ProjType.cpp:
-            generator = project_factory.GeneratedCPP(project_path, project_name, force)
-        elif type == ProjType.python:
-            generator = project_factory.GeneratedPython(project_path, project_name, force)
-        if git_init or submodule_init:
-            if not generate:
-                # In a python project the pre-commit tool is only installed once pyproject.toml is read,
-                # so it can't be called without file generation
-                console_log.info(
-                    "Git repository not initialized ([red]--no-git-init[/] applied). Please generate "
-                    "project files first."
-                )
-        if generate:
-            generate_project_files(project_path, git_init=git_init, submodule_init=submodule_init, generator=generator)
-    except RuntimeError:
+    # Deliberate control flow: keep OUT of any try so it can't be swallowed.
+    if type == ProjType.none:
+        # We'd like 'type' to be specified as an optional argument, but a "valid" default could have
+        # unintended consequences.
+        console_log.info("Please specify a valid type (use [red]--help[/red] for options).")
         raise typer.Exit(code=1)
+
+    # Step 1: construct the generator (creates/validates the config file).
+    try:
+        if type == ProjType.cpp:
+            generator: project_factory.GeneratedProject = project_factory.GeneratedCPP(
+                project_path, project_name, force
+            )
+        else:  # ProjType.python
+            generator = project_factory.GeneratedPython(project_path, project_name, force)
+    except FileNotFoundError as err:  # missing source dir, or no name and no existing config
+        console_log.error(f"Could not locate project sources or configuration: {err}")
+        raise typer.Exit(code=1) from err
+    except RuntimeError as err:  # config exists without --force, or config processing failed
+        console_log.error(err)
+        raise typer.Exit(code=1) from err
+
+    if (git_init or submodule_init) and not generate:
+        # In a python project the pre-commit tool is only installed once pyproject.toml is read,
+        # so it can't be called without file generation.
+        console_log.info(
+            "Git repository not initialized ([red]--no-git-init[/] applied). Please generate project files first."
+        )
+
+    if not generate:
+        return
+
+    # Step 2: generate project files from the now-valid configuration.
+    try:
+        generate_project_files(project_path, git_init=git_init, submodule_init=submodule_init, generator=generator)
+    except FileNotFoundError as err:  # _check_directories / collect_source_files
+        console_log.error(f"Project files could not be generated: {err}")
+        raise typer.Exit(code=1) from err
+    except RuntimeError as err:
+        console_log.error(err)
+        raise typer.Exit(code=1) from err

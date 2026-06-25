@@ -109,6 +109,14 @@ def test_edit_forge_config_preserves_lines_when_no_valid_edits(tmp_path):
     assert "version_major = 0" in contents
 
 
+def test_edit_forge_config_no_file_is_noop(tmp_path):
+    # With no forge.toml present, the call logs and returns without raising or creating a file.
+    project = _bare_cpp(tmp_path)
+    project.manifest = {"template-parameters": {"start_year": {"type": "int"}}}
+    project.edit_forge_config({"start_year": "2030"})
+    assert not (tmp_path / "forge.toml").exists()
+
+
 # ---------------------------------------------------------------------------
 # _process_single_file (high-priority gap #5)
 # ---------------------------------------------------------------------------

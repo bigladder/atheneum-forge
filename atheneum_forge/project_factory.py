@@ -199,7 +199,7 @@ class GeneratedProject(ABC):
                 if not to_path.parent.exists():
                     to_path.parent.mkdir(parents=True, exist_ok=True)
                 if to_path.exists():
-                    try:
+                    try:  # noqa: PLW0717
                         with open(to_path, "r", encoding="utf-8") as existing:  # TODO:  possible for 'existing'
                             if existing.read() == out:
                                 prefix = f"{'UP-TO-DATE(file)':<{width}}: "
@@ -261,7 +261,7 @@ class GeneratedProject(ABC):
         def __str__(self):
             return f"{self.comment}{self.parameter} = {self.value}\n"
 
-    def edit_forge_config(self, edits: dict[str, str]) -> None:  # noqa: PLR0912 too-many-branches
+    def edit_forge_config(self, edits: dict[str, str]) -> None:
         """
         Allow programmatic changes to the project configuration file, to take effect before project generation.
         """
@@ -274,34 +274,35 @@ class GeneratedProject(ABC):
             else:
                 logger.info("Values may be assigned to the following items:")
                 logger.info(list(self.manifest["template-parameters"].keys()))
-        try:
-            forge_config_file: Path = self.target_dir / FORGE_CONFIG
-            # First, categorize the config file entries into active and inactive (commented) entries
-            commented_toml: list[GeneratedProject.CommentedTomlEntry | str] = []
-            with open(forge_config_file, "r", encoding="utf-8") as config_file:
-                for line in config_file:
-                    config_line = re.match(r"(?P<comment>(^# )?)(?P<parameter>\S*) = (?P<value>\S*)", line)
-                    if config_line:
-                        commented_toml.append(
-                            GeneratedProject.CommentedTomlEntry(
-                                config_line.group("comment"), config_line.group("parameter"), config_line.group("value")
-                            )
+        forge_config_file: Path = self.target_dir / FORGE_CONFIG
+        if not forge_config_file.is_file():
+            logger.info(f"No configuration file at {forge_config_file}; nothing to edit.")
+            return
+
+        # First, categorize the config file entries into active and inactive (commented) entries
+        commented_toml: list[GeneratedProject.CommentedTomlEntry | str] = []
+        with open(forge_config_file, "r", encoding="utf-8") as config_file:
+            for line in config_file:
+                config_line = re.match(r"(?P<comment>(^# )?)(?P<parameter>\S*) = (?P<value>\S*)", line)
+                if config_line:
+                    commented_toml.append(
+                        GeneratedProject.CommentedTomlEntry(
+                            config_line.group("comment"), config_line.group("parameter"), config_line.group("value")
                         )
-                    else:
-                        commented_toml.append(line)
-            with open(forge_config_file, "w", encoding="utf-8") as edited:
-                for entry in commented_toml:  # Preserve line-ordering from original file
-                    if not isinstance(entry, GeneratedProject.CommentedTomlEntry):  # e.g. "[[deps]]"
-                        edited.write(entry)
-                    else:
-                        if entry.parameter in configuration_changes:  # Exact-match the requested change
-                            entry.value = f'"{configuration_changes[entry.parameter]}"'  # Quote for compatibility
-                            entry.comment = ""
-                        edited.write(str(entry))  # Always rewrite the line, changed or not
-            # Re-load to memory
-            self.configuration = core.read_toml(forge_config_file)
-        except FileNotFoundError:
-            pass
+                    )
+                else:
+                    commented_toml.append(line)
+        with open(forge_config_file, "w", encoding="utf-8") as edited:
+            for entry in commented_toml:  # Preserve line-ordering from original file
+                if not isinstance(entry, GeneratedProject.CommentedTomlEntry):  # e.g. "[[deps]]"
+                    edited.write(entry)
+                else:
+                    if entry.parameter in configuration_changes:  # Exact-match the requested change
+                        entry.value = f'"{configuration_changes[entry.parameter]}"'  # Quote for compatibility
+                        entry.comment = ""
+                    edited.write(str(entry))  # Always rewrite the line, changed or not
+        # Re-load to memory
+        self.configuration = core.read_toml(forge_config_file)
 
     @abstractmethod
     def init_pre_commit(self) -> list:
