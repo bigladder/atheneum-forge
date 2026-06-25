@@ -3,7 +3,7 @@
 
 import logging
 from pathlib import Path
-from typing import Iterable
+from typing import Iterable, override
 
 from textual import on
 from textual.app import App, ComposeResult
@@ -42,6 +42,7 @@ class FolderTree(DirectoryTree):
         super().__init__(path, name=name, id=id, classes=classes, disabled=disabled)
         self.border_title = title
 
+    @override
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
         return [path for path in paths if path.is_dir()]
 

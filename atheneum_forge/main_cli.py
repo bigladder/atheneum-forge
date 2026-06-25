@@ -62,7 +62,7 @@ ProjType = project_factory.ProjectType
 
 
 @app.command("init")
-def initialize_configuration(  # noqa: PLR0913
+def initialize_configuration(  # noqa: PLR0913, PLR0917
     project_path: Annotated[Path, typer.Argument(help="Directory location of the new project.")],
     project_name: Annotated[str, typer.Argument(help="Name of the project.")],
     type: ProjType = ProjType.none,

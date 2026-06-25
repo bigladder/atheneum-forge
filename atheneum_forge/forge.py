@@ -21,7 +21,7 @@ class AtheneumForge:
     def __init__(self):
         self.generator: project_factory.GeneratedProject | None = None
 
-    def initialize_configuration(  # noqa: PLR0913
+    def initialize_configuration(  # noqa: PLR0913, PLR0917
         self,
         project_path: Path,
         project_name: str,

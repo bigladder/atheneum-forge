@@ -22,7 +22,7 @@ jobs:
       - name: Run Ruff Linter
         uses: astral-sh/ruff-action@v3
         with:
-          version: 0.9.9
+          version: 0.15.17
           args: check
           src: "${{env.REPOSITORY_NAME}}"
       - name: Static type checking
