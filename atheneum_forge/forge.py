@@ -84,19 +84,25 @@ class AtheneumForge:
                 f"- {r}",
             )
 
-        if git_init:
-            try:
-                core.run_commands(self.generator.init_git_repo() + self.generator.init_pre_commit())  # type: ignore
-            except CalledProcessError as err:
-                logger.error(err)
-                raise err
-
         if submodule_init:
-            try:
-                core.run_commands(self.generator.init_submodules())  # type: ignore
-            except CalledProcessError as err:
-                logger.error(err)
-                raise err
+            self._git_init()
+            self._submodule_init()
+        elif git_init:
+            self._git_init()
+
+    def _submodule_init(self):
+        try:
+            core.run_commands(self.generator.init_submodules())  # type: ignore
+        except CalledProcessError as err:
+            logger.error(err)
+            raise err
+
+    def _git_init(self):
+        try:
+            core.run_commands(self.generator.init_git_repo() + self.generator.init_pre_commit())  # type: ignore
+        except CalledProcessError as err:
+            logger.error(err)
+            raise err
 
     def update_project_files(
         self,

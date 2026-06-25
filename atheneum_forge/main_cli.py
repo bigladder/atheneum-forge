@@ -26,7 +26,7 @@ def generate_project_files(  # type: ignore
 ) -> None:
     """
     (Re-)Generate project from template files.
-    If initialize submodules is True, the config path must be within a git repo.
+    If submodule_init is True, a git repo will be created.
     Initializing submodules will set up the vendor directory.
     """
     if not generator:

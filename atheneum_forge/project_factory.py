@@ -3,6 +3,7 @@
 
 import filecmp
 import logging
+import os
 import re
 import shutil
 from abc import ABC, abstractmethod
@@ -227,8 +228,10 @@ class GeneratedProject(ABC):
         ]
 
         try:
-            core.run_commands(cmd)
-            return True
+            toplevel = core.run_commands(cmd)[0]
+            logger.debug("_is_git_repo: toplevel: %s", toplevel)
+            logger.debug("_is_git_repo: os.getcwd(): %s", os.getcwd())
+            return toplevel == os.getcwd()
         except CalledProcessError:
             return False
 

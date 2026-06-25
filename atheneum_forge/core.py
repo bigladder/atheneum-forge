@@ -405,7 +405,7 @@ def init_pre_commit(target_directory: Path | str, type: str) -> list:
     return []
 
 
-def run_commands(commands: list) -> None:
+def run_commands(commands: list) -> list[str]:
     """
     Run a list of commands.
     A command is documented as for setup_vendor.
@@ -413,6 +413,7 @@ def run_commands(commands: list) -> None:
     Raises:
         CalledProcessError: The subprocess had a nonzero return code.
     """
+    responses: list[str] = []
     for c in commands:
         for cmd in c["cmds"]:
             if not c["dir"].exists():
@@ -420,7 +421,8 @@ def run_commands(commands: list) -> None:
             log.info(cmd)
             result = subprocess.run(cmd, cwd=c["dir"], shell=True, check=False, capture_output=True, encoding="utf8")
             result.check_returncode()
-            log.info(result.stdout)  # Only reached if success code (0) returned
+            responses.append(result.stdout)
+    return responses
 
 
 def gen_copyright(config: dict, copy_template: str, all_files: set[Path]) -> dict:
