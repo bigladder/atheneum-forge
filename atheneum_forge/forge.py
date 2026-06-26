@@ -21,7 +21,7 @@ class AtheneumForge:
     def __init__(self):
         self.generator: project_factory.GeneratedProject | None = None
 
-    def initialize_configuration(  # noqa: PLR0913
+    def initialize_configuration(  # noqa: PLR0913, PLR0917
         self,
         project_path: Path,
         project_name: str,
@@ -36,30 +36,49 @@ class AtheneumForge:
         configuation files will not be overwritten without the --force flag.)
         """
         ProjType = project_factory.ProjectType
+
+        if not project_name:
+            project_name = Path(project_path).resolve().name  # normalized or raw?
+
+        # Deliberate control flow: invalid type is a usage error, raised directly (not wrapped).
+        if type == ProjType.none:
+            # We'd like 'type' to be specified as an optional argument, but a "valid" default could have
+            # unintended consequences.
+            logger.error("Please specify a valid type (use [red]--help[/red] for options).")
+            raise RuntimeError("No project type specified.")
+
+        # Step 1: construct the generator (creates/validates the config file).
         try:
-            if not project_name:
-                project_name = Path(project_path).resolve().name  # normalized or raw?
-            if type == ProjType.none:
-                # We'd like 'type' to be specified as an optional argument, but a "valid" default could have
-                # unintended consequences.
-                logger.error("Please specify a valid type (use [red]--help[/red] for options).")
-                raise RuntimeError
-            elif type == ProjType.cpp:
+            if type == ProjType.cpp:
                 self.generator = project_factory.GeneratedCPP(project_path, project_name, force)
-            elif type == ProjType.python:
+            else:  # ProjType.python
                 self.generator = project_factory.GeneratedPython(project_path, project_name, force)
-            if git_init or submodule_init:
-                if not generate:
-                    # In a python project the pre-commit tool is only installed once pyproject.toml is read,
-                    # so it can't be called without file generation
-                    logger.info(
-                        "Git repository not initialized ([red]--no-git-init[/] applied). Please generate "
-                        "project files first."
-                    )
-            if generate:
-                self.generate_project_files(project_path, git_init=git_init, submodule_init=submodule_init)
-        except RuntimeError:
+        except FileNotFoundError as err:  # missing sources, or no name and no existing config
+            logger.error(f"Could not locate project sources or configuration: {err}")
             raise
+        except RuntimeError as err:  # config exists without force, or config processing failed
+            logger.error(err)
+            raise
+
+        if (git_init or submodule_init) and not generate:
+            # In a python project the pre-commit tool is only installed once pyproject.toml is read,
+            # so it can't be called without file generation.
+            logger.info(
+                "Git repository not initialized ([red]--no-git-init[/] applied). Please generate project files first."
+            )
+
+        if not generate:
+            return
+
+        # Step 2: generate project files (and optionally init git/submodules).
+        try:
+            self.generate_project_files(project_path, git_init=git_init, submodule_init=submodule_init)
+        except (FileNotFoundError, RuntimeError) as err:  # _check_directories / collect_source_files / manifest
+            logger.error(f"Project files could not be generated: {err}")
+            raise
+        except CalledProcessError as err:  # bubbled up from _git_init / _submodule_init
+            logger.error(f"Git/submodule initialization failed: {err}")
+            # files are already generated; the repo is usable, so don't abort
 
     def generate_project_files(  # type: ignore
         self, project_path: Path, git_init: bool = True, submodule_init: bool = True
@@ -84,19 +103,25 @@ class AtheneumForge:
                 f"- {r}",
             )
 
-        if git_init:
-            try:
-                core.run_commands(self.generator.init_git_repo() + self.generator.init_pre_commit())  # type: ignore
-            except CalledProcessError as err:
-                logger.error(err)
-                raise err
-
         if submodule_init:
-            try:
-                core.run_commands(self.generator.init_submodules())  # type: ignore
-            except CalledProcessError as err:
-                logger.error(err)
-                raise err
+            self._git_init()
+            self._submodule_init()
+        elif git_init:
+            self._git_init()
+
+    def _submodule_init(self):
+        try:
+            core.run_commands(self.generator.init_submodules())  # type: ignore
+        except CalledProcessError as err:
+            logger.error(err)
+            raise err
+
+    def _git_init(self):
+        try:
+            core.run_commands(self.generator.init_git_repo() + self.generator.init_pre_commit())  # type: ignore
+        except CalledProcessError as err:
+            logger.error(err)
+            raise err
 
     def update_project_files(
         self,

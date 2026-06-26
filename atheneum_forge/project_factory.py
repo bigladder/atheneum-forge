@@ -1,8 +1,16 @@
 # SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
+import sys
+
+if sys.version_info >= (3, 12):
+    from typing import override
+else:
+    from typing_extensions import override
+
 import filecmp
 import logging
+import os
 import re
 import shutil
 from abc import ABC, abstractmethod
@@ -102,7 +110,7 @@ class GeneratedProject(ABC):
                 )
         elif not configuration_file.exists() or force:  # Create or overwrite existing configuration
             config_str = core.create_config_toml(self.manifest, project_name)
-            with open(configuration_file, "w") as fid:
+            with open(configuration_file, "w", encoding="utf-8") as fid:
                 fid.write(config_str)
 
             target_files: set[Path] = core.list_files_in(self.target_dir)
@@ -140,7 +148,7 @@ class GeneratedProject(ABC):
         if not configuration_file.is_file():
             raise FileNotFoundError(f'Config "{configuration_file}" is not a file.')
 
-    def _process_single_file(  # noqa: PLR0912, PLR0913, PLR0915
+    def _process_single_file(  # noqa: PLR0912, PLR0913, PLR0915, PLR0917
         self,
         from_path: Path,
         to_path: Path,
@@ -169,7 +177,7 @@ class GeneratedProject(ABC):
         if onetime and to_path.exists():
             prefix = f"{'SKIPPED (one-time)':<{width}}: "
             return f"{prefix}{to_path}"
-        if not dry_run:
+        if not dry_run:  # noqa: PLR1702 too-many-nested-blocks
             if not from_path.exists():
                 prefix = f"{'SKIPPED (no source file)':<{width}}: "
             elif from_path.is_dir():
@@ -197,7 +205,7 @@ class GeneratedProject(ABC):
                 if not to_path.parent.exists():
                     to_path.parent.mkdir(parents=True, exist_ok=True)
                 if to_path.exists():
-                    try:
+                    try:  # noqa: PLW0717
                         with open(to_path, "r", encoding="utf-8") as existing:  # TODO:  possible for 'existing'
                             if existing.read() == out:
                                 prefix = f"{'UP-TO-DATE(file)':<{width}}: "
@@ -227,8 +235,11 @@ class GeneratedProject(ABC):
         ]
 
         try:
-            core.run_commands(cmd)
-            return True
+            toplevel = core.run_commands(cmd)[0]
+            logger.debug("_is_git_repo: toplevel: %s", toplevel)
+            logger.debug("_is_git_repo: os.getcwd(): %s", os.getcwd())
+            # git emits a trailing newline and forward-slash paths; normalize before comparing.
+            return Path(toplevel.strip()) == Path(os.getcwd())
         except CalledProcessError:
             return False
 
@@ -256,7 +267,7 @@ class GeneratedProject(ABC):
         def __str__(self):
             return f"{self.comment}{self.parameter} = {self.value}\n"
 
-    def edit_forge_config(self, edits: dict[str, str]) -> None:  # noqa: PLR0912 too-many-branches
+    def edit_forge_config(self, edits: dict[str, str]) -> None:
         """
         Allow programmatic changes to the project configuration file, to take effect before project generation.
         """
@@ -269,38 +280,35 @@ class GeneratedProject(ABC):
             else:
                 logger.info("Values may be assigned to the following items:")
                 logger.info(list(self.manifest["template-parameters"].keys()))
-        try:
-            forge_config_file: Path = self.target_dir / FORGE_CONFIG
-            # First, categorize the config file entries into active and inactive (commented) entries
-            commented_toml: list[GeneratedProject.CommentedTomlEntry | str] = []
-            with open(forge_config_file, "r", encoding="utf-8") as config_file:
-                for line in config_file:
-                    config_line = re.match(r"(?P<comment>(^# )?)(?P<parameter>\S*) = (?P<value>\S*)", line)
-                    if config_line:
-                        commented_toml.append(
-                            GeneratedProject.CommentedTomlEntry(
-                                config_line.group("comment"), config_line.group("parameter"), config_line.group("value")
-                            )
+        forge_config_file: Path = self.target_dir / FORGE_CONFIG
+        if not forge_config_file.is_file():
+            logger.info(f"No configuration file at {forge_config_file}; nothing to edit.")
+            return
+
+        # First, categorize the config file entries into active and inactive (commented) entries
+        commented_toml: list[GeneratedProject.CommentedTomlEntry | str] = []
+        with open(forge_config_file, "r", encoding="utf-8") as config_file:
+            for line in config_file:
+                config_line = re.match(r"(?P<comment>(^# )?)(?P<parameter>\S*) = (?P<value>\S*)", line)
+                if config_line:
+                    commented_toml.append(
+                        GeneratedProject.CommentedTomlEntry(
+                            config_line.group("comment"), config_line.group("parameter"), config_line.group("value")
                         )
-                    else:
-                        commented_toml.append(line)
-            with open(forge_config_file, "w", encoding="utf-8") as edited:
-                for entry in commented_toml:  # Preserve line-ordering from original file
-                    if not isinstance(entry, GeneratedProject.CommentedTomlEntry):  # e.g. "[[deps]]"
-                        edited.write(entry)
-                    else:
-                        for i, (parameter, new_value) in enumerate(configuration_changes.items()):
-                            if parameter in entry.parameter:  # Are any of the requested changes in the current line?
-                                entry.value = f'"{new_value}"'  # Quotes added for compatibility with existing entries
-                                entry.comment = ""
-                                edited.write(str(entry))
-                                break
-                            elif i == len(configuration_changes) - 1:
-                                edited.write(str(entry))
-            # Re-load to memory
-            self.configuration = core.read_toml(forge_config_file)
-        except FileNotFoundError:
-            pass
+                    )
+                else:
+                    commented_toml.append(line)
+        with open(forge_config_file, "w", encoding="utf-8") as edited:
+            for entry in commented_toml:  # Preserve line-ordering from original file
+                if not isinstance(entry, GeneratedProject.CommentedTomlEntry):  # e.g. "[[deps]]"
+                    edited.write(entry)
+                else:
+                    if entry.parameter in configuration_changes:  # Exact-match the requested change
+                        entry.value = f'"{configuration_changes[entry.parameter]}"'  # Quote for compatibility
+                        entry.comment = ""
+                    edited.write(str(entry))  # Always rewrite the line, changed or not
+        # Re-load to memory
+        self.configuration = core.read_toml(forge_config_file)
 
     @abstractmethod
     def init_pre_commit(self) -> list:
@@ -382,6 +390,7 @@ class GeneratedCPP(GeneratedProject):
 
         return result
 
+    @override
     def init_pre_commit(self) -> list:
         """
         Return the list of commands required to initialize the pre-commit tool.
@@ -395,6 +404,7 @@ class GeneratedCPP(GeneratedProject):
             # }
         ]
 
+    @override
     def init_submodules(self) -> list:
         """Return the commands to initialize git submodules."""
         return core.setup_vendor(self.configuration, self.target_dir)
@@ -484,6 +494,7 @@ class GeneratedPython(GeneratedProject):
                 )
         return result
 
+    @override
     def init_pre_commit(self) -> list:
         """
         Return the list of commands required to initialize the pre-commit tool.
@@ -497,5 +508,6 @@ class GeneratedPython(GeneratedProject):
             }
         ]
 
+    @override
     def init_submodules(self) -> list:
         return []

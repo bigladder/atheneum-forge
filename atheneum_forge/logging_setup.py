@@ -1,4 +1,3 @@
-import logging
 import logging.config
 
 from rich.console import Console

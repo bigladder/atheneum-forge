@@ -1,6 +1,13 @@
 # SPDX-FileCopyrightText: © 2025 Big Ladder Software <info@bigladdersoftware.com>
 # SPDX-License-Identifier: BSD-3-Clause
 
+import sys
+
+if sys.version_info >= (3, 12):
+    from typing import override
+else:
+    from typing_extensions import override
+
 import logging
 from pathlib import Path
 from typing import Iterable
@@ -42,6 +49,7 @@ class FolderTree(DirectoryTree):
         super().__init__(path, name=name, id=id, classes=classes, disabled=disabled)
         self.border_title = title
 
+    @override
     def filter_paths(self, paths: Iterable[Path]) -> Iterable[Path]:
         return [path for path in paths if path.is_dir()]
 

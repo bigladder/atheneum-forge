@@ -72,12 +72,12 @@ def build_path(starting_dir: Path, path_str: str) -> dict:
         if "*" in piece or is_glob:
             is_glob = True
         else:
-            result = result / piece
+            result /= piece
         if is_glob:
             globs.append(piece)
 
     glob = "/".join(globs)
-    return {"path": result, "glob": None if glob == "" else glob}
+    return {"path": result, "glob": None if not glob else glob}
 
 
 @dataclass
@@ -246,11 +246,7 @@ def merge_defaults_into_config(config: dict, manifest_defaults: dict, target_fil
             v = config[p]
             result[p] = v
             if isinstance(data_type, str):
-                type_error = (
-                    f"Type mismatch in attribute {p}"
-                    f"\n... expected type: {{ data_type }}"
-                    f"\n... actual value : {{ repr(v) }}"
-                )
+                type_error = f"Type mismatch in attribute {p}\n... expected type: {data_type}\n... actual value : {v!r}"
                 if data_type.startswith("str") and not isinstance(v, str):
                     raise TypeError(type_error)
                 if data_type.startswith("int") and not isinstance(v, int):
@@ -260,13 +256,13 @@ def merge_defaults_into_config(config: dict, manifest_defaults: dict, target_fil
                         raise TypeError(type_error)
                     options = manifest_defaults[p].get("options", [])
                     if v not in options:
-                        raise TypeError("Enum error; {v} not in {options}")
+                        raise TypeError(f"Enum error; {v} not in {options}")
     # For every attribute in the manifest, if it isn't called out in the user-supplied
     # config, populate its value with a correct default.
     for k, v in manifest_defaults.items():
         if k not in config:
             if "default" not in v:
-                raise TypeError(f"Missing required config parameter '{p}'")
+                raise TypeError(f"Missing required config parameter '{k}'")
             result[k] = derive_default_parameter(manifest_defaults, k, target_files)
     return result
 
@@ -405,14 +401,18 @@ def init_pre_commit(target_directory: Path | str, type: str) -> list:
     return []
 
 
-def run_commands(commands: list) -> None:
+def run_commands(commands: list) -> list[str]:
     """
     Run a list of commands.
     A command is documented as for setup_vendor.
 
+    Returns:
+        list[str]: the stdout of each command, in execution order.
+
     Raises:
         CalledProcessError: The subprocess had a nonzero return code.
     """
+    responses: list[str] = []
     for c in commands:
         for cmd in c["cmds"]:
             if not c["dir"].exists():
@@ -421,6 +421,8 @@ def run_commands(commands: list) -> None:
             result = subprocess.run(cmd, cwd=c["dir"], shell=True, check=False, capture_output=True, encoding="utf8")
             result.check_returncode()
             log.info(result.stdout)  # Only reached if success code (0) returned
+            responses.append(result.stdout)
+    return responses
 
 
 def gen_copyright(config: dict, copy_template: str, all_files: set[Path]) -> dict:
@@ -453,8 +455,9 @@ def prepend_copyright_to_copy(from_path, copyright_text):
         already_copyrighted = False
         try:
             with open(from_path, "r", encoding="utf-8") as from_file:
-                # Allow copyright information from the first two lines
-                head = [next(from_file) for _ in range(2)]
+                # Allow copyright information from the first two lines.
+                # zip with range(2) stops at EOF, so short files don't raise StopIteration.
+                head = [line for _, line in zip(range(2), from_file)]
                 for line in head:
                     already_copyrighted = any(c in line for c in copyright_indicators)
                     if already_copyrighted:
