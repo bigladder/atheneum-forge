@@ -442,7 +442,7 @@ class GeneratedPython(GeneratedProject):
         for f in core.collect_source_files(
             self.source_data_dir,
             self.target_dir,
-            [{"from": "", "to": f"{underscore(self.configuration['project_name'])}"}],
+            [{"from": "", "to": f"src/{underscore(self.configuration['project_name'])}"}],
         ):
             result.append(
                 self._process_single_file(

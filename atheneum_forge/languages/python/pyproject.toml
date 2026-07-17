@@ -20,6 +20,7 @@ dev = [
 line-length = 120
 
 [tool.ruff.lint]
+preview = true # enable RUF027 and others
 select = [
     "E",  # pycodestyle errors (see https://docs.astral.sh/ruff/rules/#pycodestyle-e-w)
     "F",  # pyflakes (see https://docs.astral.sh/ruff/rules/#pyflakes-f)
@@ -50,7 +51,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["{{ package_name }}"] # see also: 'only-include' https://hatch.pypa.io/1.13/config/build/#explicit-selection
+packages = ["src/{{ package_name }}"] # see also: 'only-include' https://hatch.pypa.io/1.13/config/build/#explicit-selection
 
 [tool.hatch.build.targets.wheel.force-include]
 # "path-to-extra-resource-files" = "path-in-distribution-package"

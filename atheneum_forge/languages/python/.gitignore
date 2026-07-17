@@ -17,5 +17,9 @@ venv/
 *.bak
 *.bak/
 
+*.log
+*.theirs
+*.ours
+
 # TODO: mkdocs build files
 # TODO: sphinx build files

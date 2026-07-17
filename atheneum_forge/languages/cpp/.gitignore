@@ -2,3 +2,7 @@ build/
 builds/
 .idea/
 .DS_Store
+
+*.log
+*.theirs
+*.ours
