@@ -46,21 +46,21 @@ macro(add_submodule submodule_name)
     # Cache on
     if (DEFINED add_${submodule_name}_args_CACHE_ON)
         foreach (variable ${add_${submodule_name}_args_CACHE_ON})
-            set(variable ON CACHE BOOL "" FORCE)
+            set(${variable} ON CACHE BOOL "" FORCE)
         endforeach ()
     endif ()
 
     # Cache off
     if (DEFINED add_${submodule_name}_args_CACHE_OFF)
         foreach (variable ${add_${submodule_name}_args_CACHE_OFF})
-            set(variable OFF CACHE BOOL "" FORCE)
+            set(${variable} OFF CACHE BOOL "" FORCE)
         endforeach ()
     endif ()
 
     # Mark as advanced
     if (DEFINED add_${submodule_name}_args_MARK_AS_ADVANCED)
         foreach (variable ${add_${submodule_name}_args_MARK_AS_ADVANCED})
-            mark_as_advanced(variable)
+            mark_as_advanced(${variable})
         endforeach ()
     endif ()
 
