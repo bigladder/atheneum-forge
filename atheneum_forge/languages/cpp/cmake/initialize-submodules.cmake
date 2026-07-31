@@ -39,7 +39,10 @@ macro(add_submodule submodule_name)
     endif ()
 
     # Add subdirectory
-    if (NOT TARGET ${target_name} AND (EXISTS "${submodule_path}"))
+    if (NOT TARGET ${target_name})
+        if (NOT EXISTS "${submodule_path}")
+            message(FATAL_ERROR "Submodule directory \"${submodule_path}\" does not exist")
+        endif ()
         add_subdirectory(${submodule_path})
     endif ()
 
