@@ -38,6 +38,22 @@ macro(add_submodule submodule_name)
         endif ()
     endif ()
 
+    # Cache on -- must run before add_subdirectory: these are typically options the
+    # submodule's own CMakeLists.txt reads via option()/if() to decide what to build,
+    # so forcing them after add_subdirectory would be too late to have any effect.
+    if (DEFINED add_${submodule_name}_args_CACHE_ON)
+        foreach (variable ${add_${submodule_name}_args_CACHE_ON})
+            set(${variable} ON CACHE BOOL "" FORCE)
+        endforeach ()
+    endif ()
+
+    # Cache off -- see Cache on above
+    if (DEFINED add_${submodule_name}_args_CACHE_OFF)
+        foreach (variable ${add_${submodule_name}_args_CACHE_OFF})
+            set(${variable} OFF CACHE BOOL "" FORCE)
+        endforeach ()
+    endif ()
+
     # Add subdirectory
     if (NOT TARGET ${target_name})
         if (NOT EXISTS "${submodule_path}")
@@ -46,21 +62,8 @@ macro(add_submodule submodule_name)
         add_subdirectory(${submodule_path})
     endif ()
 
-    # Cache on
-    if (DEFINED add_${submodule_name}_args_CACHE_ON)
-        foreach (variable ${add_${submodule_name}_args_CACHE_ON})
-            set(${variable} ON CACHE BOOL "" FORCE)
-        endforeach ()
-    endif ()
-
-    # Cache off
-    if (DEFINED add_${submodule_name}_args_CACHE_OFF)
-        foreach (variable ${add_${submodule_name}_args_CACHE_OFF})
-            set(${variable} OFF CACHE BOOL "" FORCE)
-        endforeach ()
-    endif ()
-
-    # Mark as advanced
+    # Mark as advanced -- runs after add_subdirectory since some of these variables are
+    # only declared (as cache entries) by the submodule's own CMakeLists.txt
     if (DEFINED add_${submodule_name}_args_MARK_AS_ADVANCED)
         foreach (variable ${add_${submodule_name}_args_MARK_AS_ADVANCED})
             mark_as_advanced(${variable})
